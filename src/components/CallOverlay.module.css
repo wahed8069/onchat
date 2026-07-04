@@ -1,0 +1,233 @@
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(9, 9, 11, 0.85);
+  backdrop-filter: blur(15px);
+  z-index: 2000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  animation: fadeIn var(--transition-fast) forwards;
+}
+
+.callingPane {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.avatarWrapper {
+  position: relative;
+  margin-bottom: 2rem;
+}
+
+.avatar {
+  width: 120px;
+  height: 120px;
+  border-radius: var(--radius-full);
+  object-fit: cover;
+  border: 4px solid rgba(255, 255, 255, 0.2);
+  z-index: 10;
+  position: relative;
+}
+
+/* Expanding ripple rings for calling */
+.ripple {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 120px;
+  height: 120px;
+  border-radius: var(--radius-full);
+  border: 2px solid var(--accent-color);
+  opacity: 0;
+  z-index: 1;
+  animation: rippleEffect 2s infinite ease-out;
+}
+
+.ripple2 {
+  animation-delay: 0.6s;
+}
+
+.ripple3 {
+  animation-delay: 1.2s;
+}
+
+@keyframes rippleEffect {
+  0% {
+    transform: scale(1);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(2.2);
+    opacity: 0;
+  }
+}
+
+.name {
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  letter-spacing: -0.025em;
+}
+
+.status {
+  font-size: 1rem;
+  color: var(--text-secondary);
+  margin-bottom: 3rem;
+  text-transform: capitalize;
+}
+
+.timer {
+  font-size: 1.25rem;
+  font-family: monospace;
+  letter-spacing: 0.05em;
+  color: #a1a1aa;
+  margin-bottom: 3rem;
+}
+
+/* Call Actions (Answer, End buttons) */
+.actionsRow {
+  display: flex;
+  gap: 2.5rem;
+  justify-content: center;
+  align-items: center;
+}
+
+.btn {
+  width: 64px;
+  height: 64px;
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  box-shadow: var(--shadow-lg);
+  transition: transform var(--transition-fast), background-color var(--transition-fast);
+}
+
+.btn:hover {
+  transform: scale(1.1);
+}
+
+.btn:active {
+  transform: scale(0.95);
+}
+
+.btnDecline {
+  background-color: #ef4444;
+}
+
+.btnDecline:hover {
+  background-color: #dc2626;
+}
+
+.btnAccept {
+  background-color: #10b981;
+}
+
+.btnAccept:hover {
+  background-color: #059669;
+}
+
+/* Video stream styling */
+.videoContainer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  z-index: 5;
+}
+
+.peerVideo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.selfVideo {
+  position: absolute;
+  top: 24px;
+  right: 24px;
+  width: 120px;
+  height: 180px;
+  border-radius: var(--radius-md);
+  object-fit: cover;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  box-shadow: var(--shadow-lg);
+  z-index: 15;
+  background-color: #18181b;
+}
+
+.videoControlsOverlay {
+  position: absolute;
+  bottom: 40px;
+  left: 0;
+  right: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.videoCallInfo {
+  text-align: center;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+}
+
+.videoCallName {
+  font-weight: 600;
+  font-size: 1.25rem;
+}
+
+.videoCallTimer {
+  font-size: 0.875rem;
+  opacity: 0.8;
+}
+
+/* Mock waveform animation for audio connected call */
+.waveform {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  height: 40px;
+  margin-bottom: 2rem;
+}
+
+.wavebar {
+  width: 4px;
+  height: 100%;
+  background-color: var(--accent-color);
+  border-radius: var(--radius-full);
+  animation: wave 1.2s ease-in-out infinite alternate;
+}
+
+.wavebar:nth-child(2) { animation-delay: 0.2s; height: 60%; }
+.wavebar:nth-child(3) { animation-delay: 0.4s; height: 80%; }
+.wavebar:nth-child(4) { animation-delay: 0.6s; height: 40%; }
+.wavebar:nth-child(5) { animation-delay: 0.8s; height: 70%; }
+
+@keyframes wave {
+  0% { transform: scaleY(0.3); }
+  100% { transform: scaleY(1); }
+}
+
+@media (max-width: 480px) {
+  .selfVideo {
+    top: 16px;
+    right: 16px;
+    width: 90px;
+    height: 135px;
+  }
+}
