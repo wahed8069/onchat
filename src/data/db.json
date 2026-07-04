@@ -45,7 +45,8 @@
       "receiverId": "user-1783170365830-gi2ruq6vw",
       "text": "hi",
       "imageUrl": null,
-      "timestamp": "2026-07-04T13:06:14.127Z"
+      "timestamp": "2026-07-04T13:06:14.127Z",
+      "read": true
     },
     {
       "id": "msg-1783170420748-w3bxmj87n",
@@ -169,7 +170,8 @@
       "receiverId": "user-1783170365830-gi2ruq6vw",
       "text": "Test message from admin",
       "imageUrl": null,
-      "timestamp": "2026-07-04T16:38:27.214Z"
+      "timestamp": "2026-07-04T16:38:27.214Z",
+      "read": true
     },
     {
       "id": "msg-1783183636467-zv5ldmro3",
@@ -298,6 +300,26 @@
       "text": "😏",
       "imageUrl": null,
       "timestamp": "2026-07-04T18:47:25.221Z"
+    },
+    {
+      "id": "msg-1783193838441-519tjyjgp",
+      "senderId": "admin-id",
+      "receiverId": "user-1783170365830-gi2ruq6vw",
+      "text": "",
+      "imageUrl": null,
+      "audioUrl": "/uploads/1783193838405-voice-note-1783193838189.webm",
+      "timestamp": "2026-07-04T19:37:18.441Z",
+      "read": true
+    },
+    {
+      "id": "msg-1783193861591-be1f6kxhp",
+      "senderId": "admin-id",
+      "receiverId": "user-1783171182279-x109gke8g",
+      "text": "",
+      "imageUrl": null,
+      "audioUrl": "/uploads/1783193861529-voice-note-1783193861503.webm",
+      "timestamp": "2026-07-04T19:37:41.591Z",
+      "read": false
     }
   ],
   "calls": [

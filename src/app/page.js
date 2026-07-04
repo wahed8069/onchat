@@ -361,10 +361,27 @@ export default function Home() {
 
   const startRecording = async () => {
     try {
+      console.log('Requesting microphone permission...');
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      console.log('Microphone permission granted.');
       audioChunksRef.current = [];
       
-      const options = { mimeType: 'audio/webm' };
+      let options = {};
+      if (typeof MediaRecorder !== 'undefined') {
+        if (MediaRecorder.isTypeSupported('audio/webm')) {
+          options = { mimeType: 'audio/webm' };
+          console.log('Using audio/webm for voice notes');
+        } else if (MediaRecorder.isTypeSupported('audio/mp4')) {
+          options = { mimeType: 'audio/mp4' };
+          console.log('Using audio/mp4 for voice notes');
+        } else if (MediaRecorder.isTypeSupported('audio/ogg')) {
+          options = { mimeType: 'audio/ogg' };
+          console.log('Using audio/ogg for voice notes');
+        } else {
+          console.log('Using browser default audio format');
+        }
+      }
+
       const recorder = new MediaRecorder(stream, options);
       
       recorder.ondataavailable = (event) => {
@@ -374,13 +391,26 @@ export default function Home() {
       };
 
       recorder.onstop = async () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-        if (audioBlob.size === 0) return;
+        console.log('Recording stopped. Packaging chunks...', audioChunksRef.current.length);
+        const mimeType = recorder.mimeType || 'audio/webm';
+        const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
+        console.log('Blob size:', audioBlob.size);
+        if (audioBlob.size === 0) {
+          console.warn('Empty audio blob created');
+          return;
+        }
+
+        let ext = 'webm';
+        if (mimeType.includes('mp4')) ext = 'mp4';
+        else if (mimeType.includes('ogg')) ext = 'ogg';
+        else if (mimeType.includes('mpeg')) ext = 'mp3';
+        else if (mimeType.includes('wav')) ext = 'wav';
 
         const formData = new FormData();
-        formData.append('file', audioBlob, `voice-note-${Date.now()}.webm`);
+        formData.append('file', audioBlob, `voice-note-${Date.now()}.${ext}`);
 
         try {
+          console.log('Uploading audio blob...');
           const res = await fetch('/api/upload', {
             method: 'POST',
             body: formData,
@@ -388,6 +418,7 @@ export default function Home() {
           
           if (res.ok) {
             const data = await res.json();
+            console.log('Audio note uploaded successfully:', data.url);
             await sendAudioMessage(data.url);
           } else {
             console.error('Failed to upload audio message');
@@ -398,7 +429,8 @@ export default function Home() {
       };
 
       mediaRecorderRef.current = recorder;
-      recorder.start(200);
+      recorder.start();
+      console.log('MediaRecorder started successfully.');
       setIsRecording(true);
       setRecordingDuration(0);
 
@@ -408,7 +440,7 @@ export default function Home() {
 
     } catch (err) {
       console.error('Error starting audio recording:', err);
-      alert('Could not access microphone. Please check permissions.');
+      alert('Could not start recording. Please make sure microphone permission is enabled and your browser supports audio recording.');
     }
   };
 
