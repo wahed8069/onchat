@@ -149,7 +149,7 @@ export function getMessagesBetween(user1Id, user2Id) {
   ).sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
 }
 
-export function saveMessage({ senderId, receiverId, text, imageUrl }) {
+export function saveMessage({ senderId, receiverId, text, imageUrl, audioUrl }) {
   const db = readDb();
   
   const newMessage = {
@@ -158,6 +158,7 @@ export function saveMessage({ senderId, receiverId, text, imageUrl }) {
     receiverId,
     text: text || '',
     imageUrl: imageUrl || null,
+    audioUrl: audioUrl || null,
     timestamp: new Date().toISOString(),
     read: false
   };

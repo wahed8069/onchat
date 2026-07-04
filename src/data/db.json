@@ -53,7 +53,8 @@
       "receiverId": "admin-id",
       "text": "hi",
       "imageUrl": null,
-      "timestamp": "2026-07-04T13:07:00.748Z"
+      "timestamp": "2026-07-04T13:07:00.748Z",
+      "read": true
     },
     {
       "id": "msg-1783170436516-frmedurw5",
@@ -61,7 +62,8 @@
       "receiverId": "admin-id",
       "text": "how are. you",
       "imageUrl": null,
-      "timestamp": "2026-07-04T13:07:16.516Z"
+      "timestamp": "2026-07-04T13:07:16.516Z",
+      "read": true
     },
     {
       "id": "msg-1783171420646-gg9r4m4y1",
@@ -69,7 +71,8 @@
       "receiverId": "admin-id",
       "text": "hh",
       "imageUrl": null,
-      "timestamp": "2026-07-04T13:23:40.646Z"
+      "timestamp": "2026-07-04T13:23:40.646Z",
+      "read": true
     },
     {
       "id": "msg-1783171426360-4td1yf0oz",
@@ -77,7 +80,8 @@
       "receiverId": "admin-id",
       "text": "hhh",
       "imageUrl": null,
-      "timestamp": "2026-07-04T13:23:46.360Z"
+      "timestamp": "2026-07-04T13:23:46.360Z",
+      "read": true
     },
     {
       "id": "msg-1783171940971-rtnoo03pq",
@@ -85,7 +89,8 @@
       "receiverId": "admin-id",
       "text": "hi",
       "imageUrl": null,
-      "timestamp": "2026-07-04T13:32:20.971Z"
+      "timestamp": "2026-07-04T13:32:20.971Z",
+      "read": true
     },
     {
       "id": "msg-1783172277733-n8a5o3rvk",
@@ -93,7 +98,8 @@
       "receiverId": "admin-id",
       "text": "hi",
       "imageUrl": null,
-      "timestamp": "2026-07-04T13:37:57.733Z"
+      "timestamp": "2026-07-04T13:37:57.733Z",
+      "read": true
     },
     {
       "id": "msg-1783172427480-0k1tziez5",
@@ -101,7 +107,8 @@
       "receiverId": "admin-id",
       "text": "gii",
       "imageUrl": null,
-      "timestamp": "2026-07-04T13:40:27.480Z"
+      "timestamp": "2026-07-04T13:40:27.480Z",
+      "read": true
     },
     {
       "id": "msg-1783172444357-xbc55vofk",
@@ -109,7 +116,8 @@
       "receiverId": "admin-id",
       "text": "hi",
       "imageUrl": null,
-      "timestamp": "2026-07-04T13:40:44.357Z"
+      "timestamp": "2026-07-04T13:40:44.357Z",
+      "read": true
     },
     {
       "id": "msg-1783172809433-v8p81mri5",
@@ -117,7 +125,8 @@
       "receiverId": "admin-id",
       "text": "hi",
       "imageUrl": null,
-      "timestamp": "2026-07-04T13:46:49.433Z"
+      "timestamp": "2026-07-04T13:46:49.433Z",
+      "read": true
     },
     {
       "id": "msg-1783182600070-2yvzfmiih",
@@ -133,7 +142,8 @@
       "receiverId": "admin-id",
       "text": "fjhghgf",
       "imageUrl": null,
-      "timestamp": "2026-07-04T16:30:31.153Z"
+      "timestamp": "2026-07-04T16:30:31.153Z",
+      "read": true
     },
     {
       "id": "msg-1783182921268-hc33dyyx2",
@@ -141,7 +151,8 @@
       "receiverId": "admin-id",
       "text": "hi",
       "imageUrl": null,
-      "timestamp": "2026-07-04T16:35:21.268Z"
+      "timestamp": "2026-07-04T16:35:21.268Z",
+      "read": true
     },
     {
       "id": "msg-1783182927011-u7zznn8ol",
@@ -149,7 +160,8 @@
       "receiverId": "admin-id",
       "text": "hj",
       "imageUrl": null,
-      "timestamp": "2026-07-04T16:35:27.011Z"
+      "timestamp": "2026-07-04T16:35:27.011Z",
+      "read": true
     },
     {
       "id": "msg-1783183107214-e6vj4a87y",
@@ -165,7 +177,8 @@
       "receiverId": "admin-id",
       "text": "hi",
       "imageUrl": null,
-      "timestamp": "2026-07-04T16:47:16.468Z"
+      "timestamp": "2026-07-04T16:47:16.468Z",
+      "read": true
     },
     {
       "id": "msg-1783183651045-h0hg2af0p",
@@ -173,7 +186,8 @@
       "receiverId": "admin-id",
       "text": "jhfh",
       "imageUrl": null,
-      "timestamp": "2026-07-04T16:47:31.045Z"
+      "timestamp": "2026-07-04T16:47:31.045Z",
+      "read": true
     },
     {
       "id": "msg-1783183689513-vtn1w7aaq",
@@ -181,7 +195,8 @@
       "receiverId": "admin-id",
       "text": "hhh",
       "imageUrl": null,
-      "timestamp": "2026-07-04T16:48:09.513Z"
+      "timestamp": "2026-07-04T16:48:09.513Z",
+      "read": true
     },
     {
       "id": "msg-1783183717982-oae3rk4i2",
@@ -197,7 +212,8 @@
       "receiverId": "admin-id",
       "text": "gfghc",
       "imageUrl": null,
-      "timestamp": "2026-07-04T16:49:01.693Z"
+      "timestamp": "2026-07-04T16:49:01.693Z",
+      "read": true
     },
     {
       "id": "msg-1783183747461-0swrj8990",
@@ -205,7 +221,8 @@
       "receiverId": "admin-id",
       "text": "dssg",
       "imageUrl": null,
-      "timestamp": "2026-07-04T16:49:07.461Z"
+      "timestamp": "2026-07-04T16:49:07.461Z",
+      "read": true
     },
     {
       "id": "msg-1783183757470-n5v8kiczf",
@@ -213,7 +230,8 @@
       "receiverId": "admin-id",
       "text": "wer4567890",
       "imageUrl": null,
-      "timestamp": "2026-07-04T16:49:17.470Z"
+      "timestamp": "2026-07-04T16:49:17.470Z",
+      "read": true
     },
     {
       "id": "msg-1783185930106-wcymww9c3",
@@ -229,7 +247,8 @@
       "receiverId": "admin-id",
       "text": "jjjj",
       "imageUrl": null,
-      "timestamp": "2026-07-04T17:26:08.837Z"
+      "timestamp": "2026-07-04T17:26:08.837Z",
+      "read": true
     },
     {
       "id": "msg-1783186456325-ar2kp0h79",
@@ -237,7 +256,8 @@
       "receiverId": "admin-id",
       "text": "hi",
       "imageUrl": null,
-      "timestamp": "2026-07-04T17:34:16.325Z"
+      "timestamp": "2026-07-04T17:34:16.325Z",
+      "read": true
     },
     {
       "id": "msg-1783186548539-pq16rsqpz",

@@ -15,6 +15,95 @@ const DEFAULT_AVATARS = [
   { name: 'Slate Gradient', value: 'linear-gradient(135deg, #475569 0%, #94a3b8 100%)' }
 ];
 
+// Custom premium glassmorphic audio player for voice notes
+const VoicePlayer = ({ src, isSentByMe }) => {
+  const audioRef = useRef(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [duration, setDuration] = useState(0);
+  const [currentTime, setCurrentTime] = useState(0);
+
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    
+    const onTimeUpdate = () => setCurrentTime(audio.currentTime);
+    const onLoadedMetadata = () => setDuration(audio.duration || 0);
+    const onEnded = () => {
+      setIsPlaying(false);
+      setCurrentTime(0);
+    };
+
+    audio.addEventListener('timeupdate', onTimeUpdate);
+    audio.addEventListener('loadedmetadata', onLoadedMetadata);
+    audio.addEventListener('ended', onEnded);
+
+    if (audio.duration) {
+      setDuration(audio.duration);
+    }
+
+    return () => {
+      audio.removeEventListener('timeupdate', onTimeUpdate);
+      audio.removeEventListener('loadedmetadata', onLoadedMetadata);
+      audio.removeEventListener('ended', onEnded);
+    };
+  }, [src]);
+
+  const togglePlay = () => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    if (isPlaying) {
+      audio.pause();
+      setIsPlaying(false);
+    } else {
+      audio.play().catch(e => console.error(e));
+      setIsPlaying(true);
+    }
+  };
+
+  const handleTimelineClick = (e) => {
+    const audio = audioRef.current;
+    if (!audio || !duration) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const clickX = e.clientX - rect.left;
+    const width = rect.width;
+    const clickPercent = clickX / width;
+    audio.currentTime = clickPercent * duration;
+    setCurrentTime(audio.currentTime);
+  };
+
+  const formatTime = (time) => {
+    if (isNaN(time)) return '0:00';
+    const mins = Math.floor(time / 60);
+    const secs = Math.floor(time % 60);
+    return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+  };
+
+  const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
+
+  return (
+    <div className={`${styles.voicePlayer} ${isSentByMe ? styles.voicePlayerSent : styles.voicePlayerReceived}`}>
+      <audio ref={audioRef} src={src} preload="metadata" />
+      <button type="button" className={styles.voicePlayBtn} onClick={togglePlay}>
+        {isPlaying ? (
+          <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20">
+            <path fillRule="evenodd" d="M6.75 5.25a.75.75 0 0 1 .75-.75H9a.75.75 0 0 1 .75.75v13.5a.75.75 0 0 1-.75.75H7.5a.75.75 0 0 1-.75-.75V5.25Zm7.5 0A.75.75 0 0 1 15 4.5h1.5a.75.75 0 0 1 .75.75v13.5a.75.75 0 0 1-.75.75H15a.75.75 0 0 1-.75-.75V5.25Z" clipRule="evenodd" />
+          </svg>
+        ) : (
+          <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20">
+            <path fillRule="evenodd" d="M4.5 5.653c0-1.427 1.529-2.33 2.779-1.643l11.54 6.347c1.295.712 1.295 2.573 0 3.286L7.28 19.99c-1.25.687-2.779-.217-2.779-1.643V5.653Z" clipRule="evenodd" />
+          </svg>
+        )}
+      </button>
+      <div className={styles.voiceTimeline} onClick={handleTimelineClick}>
+        <div className={styles.voiceProgressBar} style={{ width: `${progress}%` }} />
+      </div>
+      <span className={styles.voiceTime}>
+        {formatTime(currentTime)} / {formatTime(duration)}
+      </span>
+    </div>
+  );
+};
+
 export default function Home() {
   const [currentUser, setCurrentUser] = useState(null);
   const [users, setUsers] = useState([]);
@@ -45,6 +134,13 @@ export default function Home() {
   // Mobile State
   const [showMobileChat, setShowMobileChat] = useState(false);
   const [isPageLoading, setIsPageLoading] = useState(true);
+
+  // Voice Recording State
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingDuration, setRecordingDuration] = useState(0);
+  const mediaRecorderRef = useRef(null);
+  const audioChunksRef = useRef([]);
+  const recordingIntervalRef = useRef(null);
 
   const router = useRouter();
   const messagesEndRef = useRef(null);
@@ -253,6 +349,117 @@ export default function Home() {
       alert('Upload failed');
     } finally {
       setIsUploading(false);
+    }
+  };
+
+  // Voice Note Helpers
+  const formatDuration = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+  };
+
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      audioChunksRef.current = [];
+      
+      const options = { mimeType: 'audio/webm' };
+      const recorder = new MediaRecorder(stream, options);
+      
+      recorder.ondataavailable = (event) => {
+        if (event.data && event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+
+      recorder.onstop = async () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        if (audioBlob.size === 0) return;
+
+        const formData = new FormData();
+        formData.append('file', audioBlob, `voice-note-${Date.now()}.webm`);
+
+        try {
+          const res = await fetch('/api/upload', {
+            method: 'POST',
+            body: formData,
+          });
+          
+          if (res.ok) {
+            const data = await res.json();
+            await sendAudioMessage(data.url);
+          } else {
+            console.error('Failed to upload audio message');
+          }
+        } catch (uploadErr) {
+          console.error('Error uploading audio:', uploadErr);
+        }
+      };
+
+      mediaRecorderRef.current = recorder;
+      recorder.start(200);
+      setIsRecording(true);
+      setRecordingDuration(0);
+
+      recordingIntervalRef.current = setInterval(() => {
+        setRecordingDuration((prev) => prev + 1);
+      }, 1000);
+
+    } catch (err) {
+      console.error('Error starting audio recording:', err);
+      alert('Could not access microphone. Please check permissions.');
+    }
+  };
+
+  const stopRecording = () => {
+    const recorder = mediaRecorderRef.current;
+    if (recorder && recorder.state !== 'inactive') {
+      recorder.stop();
+      recorder.stream.getTracks().forEach((track) => track.stop());
+    }
+    if (recordingIntervalRef.current) {
+      clearInterval(recordingIntervalRef.current);
+    }
+    setIsRecording(false);
+  };
+
+  const cancelRecording = () => {
+    const recorder = mediaRecorderRef.current;
+    if (recorder && recorder.state !== 'inactive') {
+      recorder.stop();
+      recorder.stream.getTracks().forEach((track) => track.stop());
+    }
+    if (recordingIntervalRef.current) {
+      clearInterval(recordingIntervalRef.current);
+    }
+    audioChunksRef.current = [];
+    setIsRecording(false);
+    setRecordingDuration(0);
+  };
+
+  const sendAudioMessage = async (audioUrl) => {
+    if (!currentUser || !selectedUser) return;
+    const currentUserId = currentUser.id || (currentUser.username?.toLowerCase() === 'admin' ? 'admin-id' : '');
+    
+    const body = {
+      senderId: currentUserId,
+      receiverId: selectedUser.id,
+      audioUrl
+    };
+
+    try {
+      const res = await fetch('/api/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+
+      if (res.ok) {
+        fetchChatData();
+      }
+    } catch (err) {
+      console.error('Error sending audio message:', err);
     }
   };
 
@@ -623,6 +830,9 @@ export default function Home() {
                               style={{ cursor: 'pointer' }}
                             />
                           )}
+                          {msg.audioUrl && (
+                            <VoicePlayer src={msg.audioUrl} isSentByMe={isSentByMe} />
+                          )}
                           {msg.text && <p className={styles.messageText}>{msg.text}</p>}
                         </div>
                         <span className={styles.messageTime}>{formattedTime}</span>
@@ -674,45 +884,89 @@ export default function Home() {
                   </svg>
                 </button>
 
-                {/* Input capsule container */}
-                <div className={styles.inputFieldWrapper}>
-                  <input
-                    type="text"
-                    className={styles.textInput}
-                    placeholder="Type your message here..."
-                    value={inputText}
-                    onChange={(e) => setInputText(e.target.value)}
-                  />
-                  
-                  {/* Emoji Picker */}
-                  <EmojiPicker onEmojiSelect={handleEmojiSelect} />
+                {isRecording ? (
+                  <div className={styles.recordingWrapper}>
+                    <div className={styles.recordingPulseDot} />
+                    <span className={styles.recordingTimer}>
+                      Recording {formatDuration(recordingDuration)}
+                    </span>
+                    <button
+                      type="button"
+                      className={styles.recordingCancelBtn}
+                      onClick={cancelRecording}
+                      title="Discard Recording"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" width="20" height="20">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.34 9m-4.72 0-.34-9m-4.788 3.84 3.106-1.166m10.457 0 3.106 1.166M4.5 12h15M10.5 4.5h3m-6 3h9M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z" />
+                      </svg>
+                    </button>
+                  </div>
+                ) : (
+                  /* Input capsule container */
+                  <div className={styles.inputFieldWrapper}>
+                    <input
+                      type="text"
+                      className={styles.textInput}
+                      placeholder="Type your message here..."
+                      value={inputText}
+                      onChange={(e) => setInputText(e.target.value)}
+                    />
+                    
+                    {/* Emoji Picker */}
+                    <EmojiPicker onEmojiSelect={handleEmojiSelect} />
 
-                  {/* Secondary Camera Icon in capsule */}
-                  <button
-                    type="button"
-                    className={styles.iconBtn}
-                    style={{ width: 32, height: 32, padding: 0 }}
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={isUploading}
-                    title="Camera / Photo"
+                    {/* Secondary Camera Icon in capsule */}
+                    <button
+                      type="button"
+                      className={styles.iconBtn}
+                      style={{ width: 32, height: 32, padding: 0 }}
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={isUploading}
+                      title="Camera / Photo"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" width="20" height="20">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 0 1 5.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 0 0-1.134-.175 2.31 2.31 0 0 1-1.64-1.055l-.822-1.316a2.192 2.192 0 0 0-1.736-1.039 48.774 48.774 0 0 0-5.232 0 2.192 2.192 0 0 0-1.736 1.039l-.821 1.316Z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0ZM18.75 10.5h.008v.008h-.008V10.5Z" />
+                      </svg>
+                    </button>
+                  </div>
+                )}
+
+                {/* Multi-action Voice / Send Button */}
+                {isRecording ? (
+                  <button 
+                    type="button" 
+                    className={`${styles.sendBtn} ${styles.sendRecordingBtn}`}
+                    onClick={stopRecording}
+                    title="Send Voice Note"
                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" width="20" height="20">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 0 1 5.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 0 0-1.134-.175 2.31 2.31 0 0 1-1.64-1.055l-.822-1.316a2.192 2.192 0 0 0-1.736-1.039 48.774 48.774 0 0 0-5.232 0 2.192 2.192 0 0 0-1.736 1.039l-.821 1.316Z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0ZM18.75 10.5h.008v.008h-.008V10.5Z" />
+                    <svg viewBox="0 0 24 24" fill="currentColor" width="22" height="22">
+                      <path fillRule="evenodd" d="M1.5 12a10.5 10.5 0 1 1 21 0 10.5 10.5 0 0 1-21 0Zm7.304-3.417a.75.75 0 0 1 1.096-.04l3.075 3.093 3.075-3.093a.75.75 0 1 1 1.096 1.025l-3.623 3.644a.75.75 0 0 1-1.096 0L8.764 9.608a.75.75 0 0 1 .04-1.025Z" clipRule="evenodd" />
                     </svg>
                   </button>
-                </div>
-
-                {/* Send Button (Purple Circle) */}
-                <button 
-                  type="submit" 
-                  className={styles.sendBtn}
-                  disabled={(!inputText.trim() && !uploadedImageUrl) || isUploading}
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" width="22" height="22">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 12 3.269 3.125A59.769 59.769 0 0 1 21.485 12 59.768 59.768 0 0 1 3.27 20.875L5.999 12Zm0 0h7.5" />
-                  </svg>
-                </button>
+                ) : (inputText.trim() || uploadedImageUrl) ? (
+                  <button 
+                    type="submit" 
+                    className={styles.sendBtn}
+                    disabled={isUploading}
+                    title="Send Message"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" width="22" height="22">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 12 3.269 3.125A59.769 59.769 0 0 1 21.485 12 59.768 59.768 0 0 1 3.27 20.875L5.999 12Zm0 0h7.5" />
+                    </svg>
+                  </button>
+                ) : (
+                  <button 
+                    type="button" 
+                    className={styles.voiceRecordBtn}
+                    onClick={startRecording}
+                    title="Record Voice Note"
+                  >
+                    <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20">
+                      <path fillRule="evenodd" d="M12 1.5a5.25 5.25 0 0 0-5.25 5.25v3a5.25 5.25 0 0 0 10.5 0v-3A5.25 5.25 0 0 0 12 1.5ZM12 16.5A7.5 7.5 0 0 1 4.5 9a.75.75 0 0 0-1.5 0 9 9 0 0 0 8.25 8.943V21a.75.75 0 0 0 1.5 0v-3.057A9 9 0 0 0 21 9a.75.75 0 0 0-1.5 0 7.5 7.5 0 0 1-7.5 7.5Z" clipRule="evenodd" />
+                    </svg>
+                  </button>
+                )}
               </div>
             </form>
           </>

@@ -55,7 +55,7 @@ export async function POST(request) {
   }
 
   try {
-    const { text, imageUrl, receiverId } = await request.json();
+    const { text, imageUrl, audioUrl, receiverId } = await request.json();
 
     let targetReceiverId;
     if (currentUser.role === 'admin' || currentUser.role === 'superadmin') {
@@ -68,15 +68,16 @@ export async function POST(request) {
       targetReceiverId = currentUser.creatorId || 'admin-id';
     }
 
-    if (!text && !imageUrl) {
-      return Response.json({ error: 'Message content or image is required' }, { status: 400 });
+    if (!text && !imageUrl && !audioUrl) {
+      return Response.json({ error: 'Message content, image, or audio is required' }, { status: 400 });
     }
 
     const newMessage = saveMessage({
       senderId: currentUser.id,
       receiverId: targetReceiverId,
       text,
-      imageUrl
+      imageUrl,
+      audioUrl
     });
 
     return Response.json({ success: true, message: newMessage }, { status: 201 });
