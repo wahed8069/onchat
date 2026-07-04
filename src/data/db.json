@@ -246,6 +246,30 @@
       "text": "gggg",
       "imageUrl": null,
       "timestamp": "2026-07-04T17:35:48.539Z"
+    },
+    {
+      "id": "msg-1783190343157-2h3f069qw",
+      "senderId": "admin-id",
+      "receiverId": "user-1783182584688-gbeda6aq6",
+      "text": "gtyyy",
+      "imageUrl": null,
+      "timestamp": "2026-07-04T18:39:03.157Z"
+    },
+    {
+      "id": "msg-1783190371483-nyptocdh3",
+      "senderId": "admin-id",
+      "receiverId": "user-1783182584688-gbeda6aq6",
+      "text": "ttyyt",
+      "imageUrl": null,
+      "timestamp": "2026-07-04T18:39:31.484Z"
+    },
+    {
+      "id": "msg-1783190616977-8k4l3r06z",
+      "senderId": "admin-id",
+      "receiverId": "user-1783171182279-x109gke8g",
+      "text": "ggggggggggggg",
+      "imageUrl": null,
+      "timestamp": "2026-07-04T18:43:36.977Z"
     }
   ],
   "calls": [
