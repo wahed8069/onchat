@@ -158,12 +158,29 @@ export function saveMessage({ senderId, receiverId, text, imageUrl }) {
     receiverId,
     text: text || '',
     imageUrl: imageUrl || null,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
+    read: false
   };
 
   db.messages.push(newMessage);
   writeDb(db);
   return newMessage;
+}
+
+export function markMessagesAsRead(senderId, receiverId) {
+  const db = readDb();
+  let updated = false;
+  db.messages = db.messages.map(m => {
+    if (m.senderId === senderId && m.receiverId === receiverId && !m.read) {
+      updated = true;
+      return { ...m, read: true };
+    }
+    return m;
+  });
+  if (updated) {
+    writeDb(db);
+  }
+  return updated;
 }
 
 // Call Signaling Operations

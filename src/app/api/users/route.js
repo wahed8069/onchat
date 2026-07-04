@@ -1,5 +1,5 @@
 import { cookies } from 'next/headers';
-import { getUsers, createUser } from '@/lib/db';
+import { getUsers, createUser, readDb } from '@/lib/db';
 
 async function getSessionUser() {
   try {
@@ -27,6 +27,7 @@ export async function GET() {
 
   try {
     const users = getUsers();
+    const db = readDb();
     let filteredUsers = [];
     
     if (currentUser.role === 'superadmin') {
@@ -36,8 +37,15 @@ export async function GET() {
       // Regular Admin sees and manages regular Users (exclude other admins and superadmin)
       filteredUsers = users.filter(u => u.role === 'user');
     }
+
+    const usersWithUnread = filteredUsers.map(user => {
+      const unreadCount = db.messages.filter(
+        m => m.senderId === user.id && m.receiverId === currentUser.id && !m.read
+      ).length;
+      return { ...user, unreadCount };
+    });
     
-    return Response.json({ users: filteredUsers });
+    return Response.json({ users: usersWithUnread });
   } catch (error) {
     console.error('Error fetching users:', error);
     return Response.json({ error: 'Internal Server Error' }, { status: 500 });

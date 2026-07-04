@@ -1,5 +1,5 @@
 import { cookies } from 'next/headers';
-import { getMessagesBetween, saveMessage } from '@/lib/db';
+import { getMessagesBetween, saveMessage, markMessagesAsRead } from '@/lib/db';
 
 async function getSessionUser() {
   try {
@@ -36,6 +36,9 @@ export async function GET(request) {
       // User can only get messages with their creator admin (or default admin)
       chatUserId = currentUser.creatorId || 'admin-id';
     }
+
+    // Mark messages from other user as read
+    markMessagesAsRead(chatUserId, currentUser.id);
 
     const messages = getMessagesBetween(currentUser.id, chatUserId);
     return Response.json({ messages });

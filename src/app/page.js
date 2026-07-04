@@ -112,6 +112,11 @@ export default function Home() {
   const fetchChatData = async () => {
     if (!currentUser) return;
 
+    // Refresh user list (and unread counts) for admin/superadmin
+    if (currentUser.role === 'admin' || currentUser.role === 'superadmin') {
+      fetchUsers();
+    }
+
     // A. Fetch Call Session Status
     try {
       const callRes = await fetch('/api/calls');
@@ -500,6 +505,9 @@ export default function Home() {
                         <div className={styles.userItemName}>{user.username}</div>
                         <div className={styles.userItemStatus}>Tap to open private chat</div>
                       </div>
+                      {user.unreadCount > 0 && (
+                        <span className={styles.unreadBadge}>{user.unreadCount}</span>
+                      )}
                     </button>
                   ))
                 )}
