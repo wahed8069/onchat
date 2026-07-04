@@ -381,6 +381,8 @@ export default function Home() {
     u.username.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const totalUnread = users.reduce((sum, u) => sum + (u.unreadCount || 0), 0);
+
   if (isPageLoading) {
     return (
       <div className={styles.splashContainer}>
@@ -419,6 +421,9 @@ export default function Home() {
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" width="22" height="22">
               <path strokeLinecap="round" strokeLinejoin="round" d="M8.625 12a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H8.25m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H12m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 0 1-2.555-.337A5.972 5.972 0 0 1 5.41 20.97a5.969 5.969 0 0 1-.474-.065 4.48 4.48 0 0 0 .978-2.025 4.486 4.486 0 0 0-.406-1.106C3.743 16.584 3 14.39 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25Z" />
             </svg>
+            {totalUnread > 0 && (
+              <span className={styles.navTabBadge}>{totalUnread}</span>
+            )}
           </button>
  
           {/* Admin Credentials Panel Tab (For Admin & Super Admin) */}
