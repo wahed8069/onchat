@@ -1067,3 +1067,296 @@
 .voicePlayerReceived .voiceTime {
   color: var(--text-secondary);
 }
+
+/* PRESENCE & ONLINE DOTS */
+.avatarWithPresence {
+  position: relative;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.presenceDotOnline {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 12px;
+  height: 12px;
+  background-color: #10b981;
+  border: 2px solid var(--bg-primary, #0f172a);
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+  animation: pulseGreen 2s infinite;
+}
+
+.presenceDotOffline {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 10px;
+  height: 10px;
+  background-color: #94a3b8;
+  border: 2px solid var(--bg-primary, #0f172a);
+  border-radius: 50%;
+}
+
+@keyframes pulseGreen {
+  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.6); }
+  70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+}
+
+/* APP BRANDING HEADER IN SIDEBAR */
+.appBrandingHeader {
+  padding: 1rem 1.25rem 0.5rem 1.25rem;
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid var(--border-color, rgba(255, 255, 255, 0.1));
+}
+
+/* SUPER ADMIN REQUEST CARDS PANEL */
+.requestsPanelContainer {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.requestCard {
+  background: var(--bg-secondary, rgba(30, 41, 59, 0.7));
+  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.1));
+  border-radius: 14px;
+  padding: 1rem;
+  margin: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transition: all 0.2s ease;
+}
+
+.requestCard:hover {
+  border-color: #0d9488;
+}
+
+.requestCardHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.requestAvatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #0d9488;
+  flex-shrink: 0;
+}
+
+.requestCardMeta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  overflow: hidden;
+}
+
+.requestEmail {
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--text-primary, #f8fafc);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.requestPhone {
+  font-size: 0.8rem;
+  color: var(--text-secondary, #94a3b8);
+}
+
+.requestPlace {
+  font-size: 0.78rem;
+  color: #14b8a6;
+  font-weight: 500;
+}
+
+.requestCardBody {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  background-color: rgba(15, 23, 42, 0.4);
+  padding: 0.65rem 0.85rem;
+  border-radius: 10px;
+  font-size: 0.8rem;
+}
+
+.requestCardRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.requestLabel {
+  color: var(--text-secondary, #94a3b8);
+  font-size: 0.75rem;
+}
+
+.requestPlanBadge {
+  font-weight: 700;
+  font-size: 0.75rem;
+  color: #0d9488;
+  background: rgba(13, 148, 136, 0.15);
+  padding: 0.15rem 0.5rem;
+  border-radius: 8px;
+}
+
+.requestPasswordCode {
+  font-family: monospace;
+  background: rgba(0, 0, 0, 0.3);
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
+  color: #f43f5e;
+}
+
+.requestDate {
+  font-size: 0.75rem;
+  color: var(--text-secondary, #94a3b8);
+}
+
+.statusPending {
+  color: #f59e0b;
+  font-weight: 800;
+  font-size: 0.7rem;
+  letter-spacing: 0.05em;
+}
+
+.statusApproved {
+  color: #10b981;
+  font-weight: 800;
+  font-size: 0.7rem;
+  letter-spacing: 0.05em;
+}
+
+.statusRejected {
+  color: #ef4444;
+  font-weight: 800;
+  font-size: 0.7rem;
+  letter-spacing: 0.05em;
+}
+
+.requestCardActions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+
+.approveBtn {
+  padding: 0.5rem;
+  background: linear-gradient(135deg, #0d9488 0%, #10b981 100%);
+  color: white;
+  border: none;
+  font-weight: 700;
+  font-size: 0.78rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.approveBtn:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.rejectBtn {
+  padding: 0.5rem;
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  font-weight: 700;
+  font-size: 0.78rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.rejectBtn:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.3);
+}
+
+/* MESSAGE SEEN & READ RECEIPTS */
+.messageFooterRow {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.35rem;
+  margin-top: 0.25rem;
+}
+
+.readReceiptWrapper {
+  display: inline-flex;
+  align-items: center;
+}
+
+.readReceiptSeen {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  color: #38bdf8;
+}
+
+.seenLabel {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: #38bdf8;
+  margin-left: 2px;
+}
+
+.readReceiptSent {
+  display: inline-flex;
+  align-items: center;
+  opacity: 0.65;
+}
+
+/* MOBILE RESPONSIVE ADAPTATION */
+@media (max-width: 768px) {
+  .appContainer {
+    padding: 0;
+    gap: 0;
+    flex-direction: column-reverse;
+  }
+
+  .navRail {
+    width: 100%;
+    height: 60px;
+    flex-direction: row;
+    padding: 0 1rem;
+    border-radius: 0;
+    justify-content: space-between;
+  }
+
+  .navAvatarWrapper {
+    margin-bottom: 0;
+  }
+
+  .navTabs {
+    flex-direction: row;
+    gap: 1.5rem;
+  }
+
+  .navLogoutBtn {
+    margin-top: 0;
+  }
+
+  .sidebar {
+    width: 100%;
+    height: calc(100vh - 60px);
+    border-radius: 0;
+    border: none;
+  }
+
+  .chatArea {
+    width: 100%;
+    height: calc(100vh - 60px);
+    border-radius: 0;
+  }
+}
+

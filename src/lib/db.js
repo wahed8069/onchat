@@ -15,7 +15,8 @@ function initDb() {
     const defaultDb = {
       users: [],
       messages: [],
-      calls: []
+      calls: [],
+      adminRequests: []
     };
     fs.writeFileSync(DB_FILE, JSON.stringify(defaultDb, null, 2), 'utf-8');
   }
@@ -24,6 +25,10 @@ function initDb() {
   const db = readDb();
   if (!db.calls) {
     db.calls = [];
+    writeDb(db);
+  }
+  if (!db.adminRequests) {
+    db.adminRequests = [];
     writeDb(db);
   }
   
@@ -73,10 +78,11 @@ export function readDb() {
     const data = fs.readFileSync(DB_FILE, 'utf-8');
     const parsed = JSON.parse(data);
     if (!parsed.calls) parsed.calls = [];
+    if (!parsed.adminRequests) parsed.adminRequests = [];
     return parsed;
   } catch (error) {
     console.error('Error reading DB file:', error);
-    return { users: [], messages: [], calls: [] };
+    return { users: [], messages: [], calls: [], adminRequests: [] };
   }
 }
 
@@ -93,19 +99,35 @@ export function writeDb(data) {
 // User CRUD operations
 export function verifyUser(username, password) {
   const db = readDb();
-  const user = db.users.find(u => u.username.toLowerCase() === username.toLowerCase());
+  const user = db.users.find(u => u.username.toLowerCase() === username.toLowerCase() || (u.email && u.email.toLowerCase() === username.toLowerCase()));
   if (!user) return null;
 
   const passwordHash = hashPassword(password);
   if (user.passwordHash === passwordHash) {
-    // Return user without password hash (but keep username, role, avatarUrl, and ID)
+    // Update last seen on login
+    updateUserLastSeen(user.id);
     const { passwordHash, ...userWithoutPassword } = user;
     return userWithoutPassword;
   }
   return null;
 }
 
-export function createUser(username, password, role = 'user', avatarUrl = '', creatorId = '') {
+export function updateUserLastSeen(userId) {
+  const db = readDb();
+  let updated = false;
+  db.users = db.users.map(u => {
+    if (u.id === userId) {
+      updated = true;
+      return { ...u, lastSeen: new Date().toISOString() };
+    }
+    return u;
+  });
+  if (updated) {
+    writeDb(db);
+  }
+}
+
+export function createUser(username, password, role = 'user', avatarUrl = '', creatorId = '', extraFields = {}) {
   const db = readDb();
   
   // Check if username already exists
@@ -125,7 +147,9 @@ export function createUser(username, password, role = 'user', avatarUrl = '', cr
     passwordHash: hashPassword(password),
     role: role,
     avatarUrl: defaultAvatar,
-    creatorId: creatorId
+    creatorId: creatorId,
+    lastSeen: new Date().toISOString(),
+    ...extraFields
   };
 
   db.users.push(newUser);
@@ -138,6 +162,86 @@ export function createUser(username, password, role = 'user', avatarUrl = '', cr
 export function getUsers() {
   const db = readDb();
   return db.users; // Return everything including password so Admin can see it
+}
+
+// Admin Requests Operations
+export function createAdminRequest({ email, phone, password, place, photo, paymentPlan }) {
+  const db = readDb();
+
+  // Check if email or username already exists in users or pending requests
+  const usernameFromEmail = email.split('@')[0];
+  const userExists = db.users.some(u => u.username.toLowerCase() === usernameFromEmail.toLowerCase() || (u.email && u.email.toLowerCase() === email.toLowerCase()));
+  if (userExists) {
+    throw new Error('An account with this email/username already exists');
+  }
+
+  const newRequest = {
+    id: 'req-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9),
+    email,
+    phone,
+    password,
+    place,
+    photo: photo || '/uploads/avatar-admin.png',
+    paymentPlan: paymentPlan || 'Pro Plan',
+    status: 'pending',
+    createdAt: new Date().toISOString()
+  };
+
+  db.adminRequests.push(newRequest);
+  writeDb(db);
+  return newRequest;
+}
+
+export function getAdminRequests() {
+  const db = readDb();
+  return db.adminRequests || [];
+}
+
+export function updateAdminRequestStatus(requestId, action) {
+  const db = readDb();
+  const reqIndex = db.adminRequests.findIndex(r => r.id === requestId);
+  if (reqIndex === -1) {
+    throw new Error('Request not found');
+  }
+
+  const req = db.adminRequests[reqIndex];
+  if (action === 'approve') {
+    // Generate unique username from email
+    let baseUsername = req.email.split('@')[0].replace(/[^a-zA-Z0-9_]/g, '');
+    if (!baseUsername) baseUsername = 'admin' + Date.now().toString().slice(-4);
+    let username = baseUsername;
+    let counter = 1;
+    while (db.users.some(u => u.username.toLowerCase() === username.toLowerCase())) {
+      username = `${baseUsername}${counter}`;
+      counter++;
+    }
+
+    const createdAdmin = createUser(
+      username,
+      req.password,
+      'admin',
+      req.photo,
+      'superadmin-id',
+      {
+        email: req.email,
+        phone: req.phone,
+        place: req.place,
+        paymentPlan: req.paymentPlan
+      }
+    );
+
+    req.status = 'approved';
+    req.approvedAt = new Date().toISOString();
+    writeDb(db);
+    return { success: true, request: req, user: createdAdmin };
+  } else if (action === 'reject') {
+    req.status = 'rejected';
+    req.rejectedAt = new Date().toISOString();
+    writeDb(db);
+    return { success: true, request: req };
+  } else {
+    throw new Error('Invalid action');
+  }
 }
 
 // Message Operations
@@ -160,7 +264,8 @@ export function saveMessage({ senderId, receiverId, text, imageUrl, audioUrl }) 
     imageUrl: imageUrl || null,
     audioUrl: audioUrl || null,
     timestamp: new Date().toISOString(),
-    read: false
+    read: false,
+    readAt: null
   };
 
   db.messages.push(newMessage);
@@ -171,10 +276,11 @@ export function saveMessage({ senderId, receiverId, text, imageUrl, audioUrl }) 
 export function markMessagesAsRead(senderId, receiverId) {
   const db = readDb();
   let updated = false;
+  const now = new Date().toISOString();
   db.messages = db.messages.map(m => {
     if (m.senderId === senderId && m.receiverId === receiverId && !m.read) {
       updated = true;
-      return { ...m, read: true };
+      return { ...m, read: true, readAt: now };
     }
     return m;
   });
@@ -258,3 +364,4 @@ export function endActiveCall(userId) {
 
 // Auto-init on load
 initDb();
+

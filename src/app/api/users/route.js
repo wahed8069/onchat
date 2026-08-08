@@ -1,5 +1,5 @@
 import { cookies } from 'next/headers';
-import { getUsers, createUser, readDb } from '@/lib/db';
+import { getUsers, createUser, readDb, updateUserLastSeen } from '@/lib/db';
 
 async function getSessionUser() {
   try {
@@ -25,6 +25,9 @@ export async function GET() {
     return Response.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // Update current user's lastSeen timestamp
+  updateUserLastSeen(currentUser.id);
+
   try {
     const users = getUsers();
     const db = readDb();
@@ -38,11 +41,22 @@ export async function GET() {
       filteredUsers = users.filter(u => u.role === 'user');
     }
 
+    const now = Date.now();
     const usersWithUnread = filteredUsers.map(user => {
       const unreadCount = db.messages.filter(
         m => m.senderId === user.id && m.receiverId === currentUser.id && !m.read
       ).length;
-      return { ...user, unreadCount };
+      
+      // Active in last 2 mins (120 seconds) = online
+      const lastSeenTime = user.lastSeen ? new Date(user.lastSeen).getTime() : 0;
+      const isOnline = Boolean(lastSeenTime && (now - lastSeenTime < 120000));
+
+      return { 
+        ...user, 
+        unreadCount,
+        isOnline,
+        lastSeen: user.lastSeen || null
+      };
     });
     
     return Response.json({ users: usersWithUnread });

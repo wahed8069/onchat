@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import EmojiPicker from '@/components/EmojiPicker';
 import CallOverlay from '@/components/CallOverlay';
+import OnChatLogo from '@/components/OnChatLogo';
 import styles from './page.module.css';
 
 // Gradient choices for default user avatars (Teal/Mint branding)
@@ -14,6 +15,20 @@ const DEFAULT_AVATARS = [
   { name: 'Sky Gradient', value: 'linear-gradient(135deg, #0284c7 0%, #38bdf8 100%)' },
   { name: 'Slate Gradient', value: 'linear-gradient(135deg, #475569 0%, #94a3b8 100%)' }
 ];
+
+// Helper to format last seen time string
+function formatLastSeenTime(lastSeenIso) {
+  if (!lastSeenIso) return 'Recently';
+  const date = new Date(lastSeenIso);
+  const diffMs = Date.now() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMins / 60);
+
+  if (diffMins < 1) return 'Just now';
+  if (diffMins < 60) return `${diffMins}m ago`;
+  if (diffHours < 24) return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  return date.toLocaleDateString([], { month: 'short', day: 'numeric' }) + ' at ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
 
 // Custom premium glassmorphic audio player for voice notes
 const VoicePlayer = ({ src, isSentByMe }) => {
@@ -110,9 +125,13 @@ export default function Home() {
   const [selectedUser, setSelectedUser] = useState(null);
   const [messages, setMessages] = useState([]);
   const [inputText, setInputText] = useState('');
-  const [activeTab, setActiveTab] = useState('chats'); // 'chats' | 'users'
+  const [activeTab, setActiveTab] = useState('chats'); // 'chats' | 'users' | 'requests'
   const [searchQuery, setSearchQuery] = useState('');
   const [theme, setTheme] = useState('light');
+
+  // Super Admin Requests State
+  const [adminRequests, setAdminRequests] = useState([]);
+  const [reqActionLoading, setReqActionLoading] = useState(null);
 
   // User Creation State
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -192,9 +211,31 @@ export default function Home() {
       if (res.ok) {
         const data = await res.json();
         setUsers(data.users || []);
+        
+        // Update selectedUser if updated user data returned
+        if (selectedUser) {
+          const updatedSelected = data.users.find(u => u.id === selectedUser.id);
+          if (updatedSelected) {
+            setSelectedUser(prev => ({ ...prev, ...updatedSelected }));
+          }
+        }
       }
     } catch (err) {
       console.error('Error fetching users:', err);
+    }
+  };
+
+  // 4. Fetch Admin Requests (Super Admin Only)
+  const fetchAdminRequests = async () => {
+    if (!currentUser || currentUser.role !== 'superadmin') return;
+    try {
+      const res = await fetch('/api/admin-requests');
+      if (res.ok) {
+        const data = await res.json();
+        setAdminRequests(data.requests || []);
+      }
+    } catch (err) {
+      console.error('Error fetching admin requests:', err);
     }
   };
 
@@ -202,18 +243,23 @@ export default function Home() {
     if (currentUser?.role === 'admin' || currentUser?.role === 'superadmin') {
       fetchUsers();
     }
+    if (currentUser?.role === 'superadmin') {
+      fetchAdminRequests();
+    }
   }, [currentUser]);
 
-  // 4. Fetch Messages & Calls (Main Polling Loop)
+  // 5. Fetch Messages & Calls (Main Polling Loop)
   const fetchChatData = async () => {
     if (!currentUser) return;
 
-    // Refresh user list (and unread counts) for admin/superadmin
     if (currentUser.role === 'admin' || currentUser.role === 'superadmin') {
       fetchUsers();
     }
+    if (currentUser.role === 'superadmin') {
+      fetchAdminRequests();
+    }
 
-    // A. Fetch Call Session Status
+    // Fetch Call Session Status
     try {
       const callRes = await fetch('/api/calls');
       if (callRes.ok) {
@@ -225,7 +271,7 @@ export default function Home() {
       console.error('Error polling call status:', err);
     }
 
-    // B. Fetch Messages
+    // Fetch Messages
     if (!selectedUser) return;
     try {
       const url = (currentUser.role === 'admin' || currentUser.role === 'superadmin')
@@ -250,82 +296,164 @@ export default function Home() {
     }
   }, [currentUser, selectedUser]);
 
-  // 5. Auto scroll to bottom
+  // Auto-scroll to bottom of chat on new message
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // 6. Handle Logout
-  const handleLogout = () => {
-    localStorage.removeItem('user');
-    document.cookie = 'user=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
-    router.push('/login');
-  };
-
-  // 7. Avatar Upload during user creation
-  const handleAvatarUpload = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setIsAvatarUploading(true);
-    const formData = new FormData();
-    formData.append('file', file);
-
+  // Handle Admin Request Approval / Rejection by Super Admin
+  const handleRequestAction = async (requestId, action) => {
+    setReqActionLoading(requestId);
     try {
-      const res = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData,
+      const res = await fetch('/api/admin-requests', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ requestId, action })
       });
       const data = await res.json();
-      if (res.ok) {
-        setCustomAvatarUrl(data.url);
-        setSelectedAvatar(data.url);
+      if (res.ok && data.success) {
+        await fetchAdminRequests();
+        await fetchUsers();
       } else {
-        alert(data.error || 'Failed to upload photo');
+        alert(data.error || 'Failed to process request');
       }
     } catch (err) {
-      alert('Upload failed');
+      console.error('Error processing request:', err);
+      alert('Network error while processing request.');
     } finally {
-      setIsAvatarUploading(false);
+      setReqActionLoading(null);
     }
   };
 
-  // 8. Handle Create User (Admin Only)
-  const handleCreateUser = async (e) => {
-    e.preventDefault();
-    setCreateError('');
-    if (!newUsername || !newPassword) {
-      setCreateError('All fields are required');
-      return;
-    }
+  // 6. Handle Send Text/Image/Voice Message
+  const handleSendMessage = async (e, forcedAudioUrl = null) => {
+    if (e) e.preventDefault();
+    const textToSend = inputText.trim();
+    const audioToSend = forcedAudioUrl;
+
+    if (!textToSend && !uploadedImageUrl && !audioToSend) return;
+
+    const payload = {
+      text: textToSend,
+      imageUrl: uploadedImageUrl || null,
+      audioUrl: audioToSend || null,
+      receiverId: (currentUser.role === 'admin' || currentUser.role === 'superadmin') ? selectedUser?.id : (currentUser.creatorId || 'admin-id')
+    };
+
+    // Optimistic message update
+    const tempId = 'temp-' + Date.now();
+    const tempMessage = {
+      id: tempId,
+      senderId: currentUser.id,
+      receiverId: payload.receiverId,
+      text: payload.text,
+      imageUrl: payload.imageUrl,
+      audioUrl: payload.audioUrl,
+      timestamp: new Date().toISOString(),
+      read: false,
+      readAt: null
+    };
+
+    setMessages(prev => [...prev, tempMessage]);
+    setInputText('');
+    setUploadedImageUrl('');
 
     try {
-      const res = await fetch('/api/users', {
+      const res = await fetch('/api/messages', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          username: newUsername, 
-          password: newPassword,
-          avatarUrl: selectedAvatar
-        }),
+        body: JSON.stringify(payload),
       });
-      const data = await res.json();
+
       if (res.ok) {
-        setNewUsername('');
-        setNewPassword('');
-        setCustomAvatarUrl('');
-        setSelectedAvatar(DEFAULT_AVATARS[0].value);
-        setIsCreateModalOpen(false);
-        fetchUsers();
-      } else {
-        setCreateError(data.error || 'Failed to create user');
+        fetchChatData();
       }
     } catch (err) {
-      setCreateError('Connection error');
+      console.error('Error sending message:', err);
     }
   };
 
-  // 9. Handle Image Attachment inside Chat Input
+  // Voice Recording Functions
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      audioChunksRef.current = [];
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) {
+          audioChunksRef.current.push(e.data);
+        }
+      };
+
+      mediaRecorder.start();
+      setIsRecording(true);
+      setRecordingDuration(0);
+
+      recordingIntervalRef.current = setInterval(() => {
+        setRecordingDuration(prev => prev + 1);
+      }, 1000);
+    } catch (err) {
+      console.error('Microphone access error:', err);
+      alert('Microphone access is required to record voice messages.');
+    }
+  };
+
+  const stopRecording = () => {
+    if (!mediaRecorderRef.current) return;
+
+    mediaRecorderRef.current.onstop = async () => {
+      clearInterval(recordingIntervalRef.current);
+      const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+      
+      const formData = new FormData();
+      formData.append('file', audioBlob, `voice-note-${Date.now()}.webm`);
+
+      try {
+        const res = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData,
+        });
+
+        const data = await res.json();
+        if (res.ok && data.url) {
+          handleSendMessage(null, data.url);
+        }
+      } catch (err) {
+        console.error('Failed to upload voice note:', err);
+      } finally {
+        setIsRecording(false);
+        setRecordingDuration(0);
+        if (mediaRecorderRef.current.stream) {
+          mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
+        }
+      }
+    };
+
+    mediaRecorderRef.current.stop();
+  };
+
+  const cancelRecording = () => {
+    if (mediaRecorderRef.current) {
+      mediaRecorderRef.current.onstop = null;
+      mediaRecorderRef.current.stop();
+      if (mediaRecorderRef.current.stream) {
+        mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
+      }
+    }
+    clearInterval(recordingIntervalRef.current);
+    setIsRecording(false);
+    setRecordingDuration(0);
+  };
+
+  const formatDuration = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+  };
+
+  // Image Select & Upload
   const handleImageSelect = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -339,197 +467,47 @@ export default function Home() {
         method: 'POST',
         body: formData,
       });
+
       const data = await res.json();
-      if (res.ok) {
+      if (res.ok && data.url) {
         setUploadedImageUrl(data.url);
       } else {
-        alert(data.error || 'Failed to upload photo');
+        alert(data.error || 'Failed to upload image');
       }
     } catch (err) {
-      alert('Upload failed');
+      console.error('Image upload error:', err);
+      alert('Error uploading image');
     } finally {
       setIsUploading(false);
     }
   };
 
-  // Voice Note Helpers
-  const formatDuration = (seconds) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
-  };
+  // Avatar Upload for New User Modal
+  const handleAvatarFileUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-  const startRecording = async () => {
-    try {
-      console.log('Requesting microphone permission...');
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      console.log('Microphone permission granted.');
-      audioChunksRef.current = [];
-      
-      let options = {};
-      if (typeof MediaRecorder !== 'undefined') {
-        if (MediaRecorder.isTypeSupported('audio/webm')) {
-          options = { mimeType: 'audio/webm' };
-          console.log('Using audio/webm for voice notes');
-        } else if (MediaRecorder.isTypeSupported('audio/mp4')) {
-          options = { mimeType: 'audio/mp4' };
-          console.log('Using audio/mp4 for voice notes');
-        } else if (MediaRecorder.isTypeSupported('audio/ogg')) {
-          options = { mimeType: 'audio/ogg' };
-          console.log('Using audio/ogg for voice notes');
-        } else {
-          console.log('Using browser default audio format');
-        }
-      }
-
-      const recorder = new MediaRecorder(stream, options);
-      
-      recorder.ondataavailable = (event) => {
-        if (event.data && event.data.size > 0) {
-          audioChunksRef.current.push(event.data);
-        }
-      };
-
-      recorder.onstop = async () => {
-        console.log('Recording stopped. Packaging chunks...', audioChunksRef.current.length);
-        const mimeType = recorder.mimeType || 'audio/webm';
-        const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
-        console.log('Blob size:', audioBlob.size);
-        if (audioBlob.size === 0) {
-          console.warn('Empty audio blob created');
-          return;
-        }
-
-        let ext = 'webm';
-        if (mimeType.includes('mp4')) ext = 'mp4';
-        else if (mimeType.includes('ogg')) ext = 'ogg';
-        else if (mimeType.includes('mpeg')) ext = 'mp3';
-        else if (mimeType.includes('wav')) ext = 'wav';
-
-        const formData = new FormData();
-        formData.append('file', audioBlob, `voice-note-${Date.now()}.${ext}`);
-
-        try {
-          console.log('Uploading audio blob...');
-          const res = await fetch('/api/upload', {
-            method: 'POST',
-            body: formData,
-          });
-          
-          if (res.ok) {
-            const data = await res.json();
-            console.log('Audio note uploaded successfully:', data.url);
-            await sendAudioMessage(data.url);
-          } else {
-            console.error('Failed to upload audio message');
-          }
-        } catch (uploadErr) {
-          console.error('Error uploading audio:', uploadErr);
-        }
-      };
-
-      mediaRecorderRef.current = recorder;
-      recorder.start();
-      console.log('MediaRecorder started successfully.');
-      setIsRecording(true);
-      setRecordingDuration(0);
-
-      recordingIntervalRef.current = setInterval(() => {
-        setRecordingDuration((prev) => prev + 1);
-      }, 1000);
-
-    } catch (err) {
-      console.error('Error starting audio recording:', err);
-      alert('Could not start recording. Please make sure microphone permission is enabled and your browser supports audio recording.');
-    }
-  };
-
-  const stopRecording = () => {
-    const recorder = mediaRecorderRef.current;
-    if (recorder && recorder.state !== 'inactive') {
-      recorder.stop();
-      recorder.stream.getTracks().forEach((track) => track.stop());
-    }
-    if (recordingIntervalRef.current) {
-      clearInterval(recordingIntervalRef.current);
-    }
-    setIsRecording(false);
-  };
-
-  const cancelRecording = () => {
-    const recorder = mediaRecorderRef.current;
-    if (recorder && recorder.state !== 'inactive') {
-      recorder.stop();
-      recorder.stream.getTracks().forEach((track) => track.stop());
-    }
-    if (recordingIntervalRef.current) {
-      clearInterval(recordingIntervalRef.current);
-    }
-    audioChunksRef.current = [];
-    setIsRecording(false);
-    setRecordingDuration(0);
-  };
-
-  const sendAudioMessage = async (audioUrl) => {
-    if (!currentUser || !selectedUser) return;
-    const currentUserId = currentUser.id || (currentUser.username?.toLowerCase() === 'admin' ? 'admin-id' : '');
-    
-    const body = {
-      senderId: currentUserId,
-      receiverId: selectedUser.id,
-      audioUrl
-    };
+    setIsAvatarUploading(true);
+    const formData = new FormData();
+    formData.append('file', file);
 
     try {
-      const res = await fetch('/api/messages', {
+      const res = await fetch('/api/upload', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
+        body: formData,
       });
 
-      if (res.ok) {
-        fetchChatData();
+      const data = await res.json();
+      if (res.ok && data.url) {
+        setCustomAvatarUrl(data.url);
+      } else {
+        alert(data.error || 'Failed to upload avatar');
       }
     } catch (err) {
-      console.error('Error sending audio message:', err);
-    }
-  };
-
-  // 10. Handle Send Message
-  const handleSendMessage = async (e) => {
-    e.preventDefault();
-    if (!inputText.trim() && !uploadedImageUrl) return;
-
-    const payload = {
-      text: inputText,
-      imageUrl: uploadedImageUrl || null,
-      receiverId: (currentUser.role === 'admin' || currentUser.role === 'superadmin') ? selectedUser.id : (currentUser.creatorId || 'admin-id')
-    };
-
-    // Optimistic Update
-    const tempMsg = {
-      id: 'temp-' + Date.now(),
-      senderId: currentUser.id,
-      receiverId: payload.receiverId,
-      text: payload.text,
-      imageUrl: payload.imageUrl,
-      timestamp: new Date().toISOString()
-    };
-    setMessages(prev => [...prev, tempMsg]);
-    setInputText('');
-    setUploadedImageUrl('');
-
-    try {
-      const res = await fetch('/api/messages', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-      if (res.ok) {
-        fetchChatData();
-      }
-    } catch (err) {
-      console.error('Send error:', err);
+      console.error('Avatar upload error:', err);
+      alert('Error uploading avatar');
+    } finally {
+      setIsAvatarUploading(false);
     }
   };
 
@@ -537,66 +515,101 @@ export default function Home() {
     setInputText(prev => prev + emoji);
   };
 
-  // 11. Call Signaling Triggers
+  // Start Call Handler
   const handleStartCall = async (type) => {
     if (!selectedUser) return;
     try {
       const res = await fetch('/api/calls', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'start',
-          receiverId: selectedUser.id,
-          type
-        })
+        body: JSON.stringify({ receiverId: selectedUser.id, type })
       });
       if (res.ok) {
-        const data = await res.json();
-        setActiveCall(data.call);
-        setCallPeer(selectedUser);
+        fetchChatData();
       }
-    } catch (e) {
-      console.error('Error starting call:', e);
+    } catch (err) {
+      console.error('Error starting call:', err);
     }
   };
 
+  // Accept Call Handler
   const handleAcceptCall = async () => {
     if (!activeCall) return;
     try {
       const res = await fetch('/api/calls', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ callId: activeCall.id, status: 'connected' })
+      });
+      if (res.ok) {
+        fetchChatData();
+      }
+    } catch (err) {
+      console.error('Error accepting call:', err);
+    }
+  };
+
+  // Decline/End Call Handler
+  const handleEndCall = async () => {
+    try {
+      const res = await fetch('/api/calls', { method: 'DELETE' });
+      if (res.ok) {
+        setActiveCall(null);
+        setCallPeer(null);
+      }
+    } catch (err) {
+      console.error('Error ending call:', err);
+    }
+  };
+
+  // Logout Handler
+  const handleLogout = () => {
+    localStorage.removeItem('user');
+    router.push('/login');
+  };
+
+  // Create User Handler (Admin Only)
+  const handleCreateUser = async (e) => {
+    e.preventDefault();
+    if (!newUsername || !newPassword) {
+      setCreateError('Username and password are required');
+      return;
+    }
+
+    setCreateError('');
+    const finalAvatar = customAvatarUrl || selectedAvatar;
+
+    try {
+      const res = await fetch('/api/users', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          action: 'accept',
-          callId: activeCall.id
-        })
+          username: newUsername,
+          password: newPassword,
+          avatarUrl: finalAvatar
+        }),
       });
+
+      const data = await res.json();
       if (res.ok) {
-        const data = await res.json();
-        setActiveCall(data.call);
+        setIsCreateModalOpen(false);
+        setNewUsername('');
+        setNewPassword('');
+        setCustomAvatarUrl('');
+        fetchUsers();
+      } else {
+        setCreateError(data.error || 'Failed to create user');
       }
-    } catch (e) {
-      console.error('Error accepting call:', e);
+    } catch (err) {
+      console.error(err);
+      setCreateError('Failed to connect to server');
     }
   };
 
-  const handleEndCall = async () => {
-    try {
-      await fetch('/api/calls', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'end' })
-      });
-      setActiveCall(null);
-      setCallPeer(null);
-    } catch (e) {
-      console.error('Error ending call:', e);
-    }
-  };
-
-  // Avatar helper
-  const renderAvatar = (url, firstLetter = 'U', customClass = '') => {
-    if (url && url.startsWith('linear-gradient')) {
+  // Avatar Renderer Helper
+  const renderAvatar = (avatarUrl, firstLetter = 'U', customClass = '') => {
+    const url = avatarUrl || '';
+    if (url.startsWith('linear-gradient')) {
       return (
         <div className={customClass || styles.userAvatarPlaceholder} style={{ background: url }}>
           {firstLetter}
@@ -620,13 +633,14 @@ export default function Home() {
     u.username.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const pendingRequests = adminRequests.filter(r => r.status === 'pending');
   const totalUnread = users.reduce((sum, u) => sum + (u.unreadCount || 0), 0);
 
   if (isPageLoading) {
     return (
       <div className={styles.splashContainer}>
-        <div className={styles.splashIcon}>C</div>
-        <div>Loading Chat...</div>
+        <OnChatLogo size={56} showText={true} />
+        <div style={{ marginTop: '1rem', color: 'var(--text-secondary)' }}>Loading OnChat...</div>
       </div>
     );
   }
@@ -664,7 +678,7 @@ export default function Home() {
               <span className={styles.navTabBadge}>{totalUnread}</span>
             )}
           </button>
- 
+
           {/* Admin Credentials Panel Tab (For Admin & Super Admin) */}
           {(currentUser.role === 'admin' || currentUser.role === 'superadmin') && (
             <button 
@@ -678,6 +692,22 @@ export default function Home() {
             </button>
           )}
 
+          {/* Super Admin Requests Tab */}
+          {currentUser.role === 'superadmin' && (
+            <button
+              className={`${styles.navTabBtn} ${activeTab === 'requests' ? styles.navTabBtnActive : ''}`}
+              onClick={() => setActiveTab('requests')}
+              title="Admin Applications & Requests"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" width="22" height="22">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M18 18.72a9.094 9.094 0 0 0 3.741-.479 3 3 0 0 0-4.682-2.72m.94 3.198.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0 1 12 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 0 1 6 18.719m12 0a5.971 5.971 0 0 0-.941-3.197m0 0A5.995 5.995 0 0 0 12 12.75a5.995 5.995 0 0 0-5.058 2.772m0 0a5.97 5.97 0 0 0-.942 3.197m0 0A9.094 9.094 0 0 1 2.25 18.24a3 3 0 0 1 4.682-2.72m.94 3.198A5.97 5.97 0 0 1 6 18.72m0 0v.03c0 .225.012.447.037.666a11.944 11.944 0 0 0 11.926 0M15 6.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm6 3a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Zm-13.5 0a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Z" />
+              </svg>
+              {pendingRequests.length > 0 && (
+                <span className={styles.navTabBadge} style={{ backgroundColor: '#0d9488' }}>{pendingRequests.length}</span>
+              )}
+            </button>
+          )}
+
           {/* Light/Dark Mode Toggle Icon */}
           <button 
             className={styles.navTabBtn} 
@@ -685,12 +715,10 @@ export default function Home() {
             title={theme === 'light' ? 'Dark Mode' : 'Light Mode'}
           >
             {theme === 'light' ? (
-              // Moon Icon
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" width="22" height="22">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M21.752 15.002A9.72 9.72 0 0 1 18 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 0 0 3 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 0 0 9.002-5.998Z" />
               </svg>
             ) : (
-              // Sun Icon
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" width="22" height="22">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v2.25m0 13.5V21M5.22 5.22l1.59 1.59m10.38 10.38l1.59 1.59M12 7.5a4.5 4.5 0 1 0 0 9 4.5 4.5 0 0 0 0-9zM3 12h2.25m13.5 0H21M5.22 18.78l1.59-1.59m10.38-10.38l1.59-1.59" />
               </svg>
@@ -706,11 +734,16 @@ export default function Home() {
         </button>
       </nav>
 
-      {/* 2. SIDEBAR: Chat List or User List */}
+      {/* 2. SIDEBAR: Chat List, User List, or Admin Requests */}
       {(currentUser.role === 'admin' || currentUser.role === 'superadmin') && (
         <aside className={`${styles.sidebar} ${showMobileChat ? styles.sidebarHidden : ''}`}>
           
-          {/* SIDEBAR VIEW A: Chats Tab (People List ONLY - Groups removed) */}
+          {/* TOP LOGO HEADER ON SIDEBAR */}
+          <div className={styles.appBrandingHeader}>
+            <OnChatLogo size={32} showText={true} />
+          </div>
+
+          {/* SIDEBAR VIEW A: Chats Tab (People List) */}
           {activeTab === 'chats' && (
             <>
               <div className={styles.sidebarHeader}>
@@ -744,10 +777,20 @@ export default function Home() {
                         setShowMobileChat(true);
                       }}
                     >
-                      {renderAvatar(user.avatarUrl, user.username.charAt(0).toUpperCase())}
+                      <div className={styles.avatarWithPresence}>
+                        {renderAvatar(user.avatarUrl, user.username.charAt(0).toUpperCase())}
+                        <span className={user.isOnline ? styles.presenceDotOnline : styles.presenceDotOffline} />
+                      </div>
+                      
                       <div className={styles.userMeta}>
                         <div className={styles.userItemName}>{user.username}</div>
-                        <div className={styles.userItemStatus}>Tap to open private chat</div>
+                        <div className={styles.userItemStatus}>
+                          {user.isOnline ? (
+                            <span style={{ color: '#10b981', fontWeight: '600' }}>Online</span>
+                          ) : (
+                            <span>Last seen {formatLastSeenTime(user.lastSeen)}</span>
+                          )}
+                        </div>
                       </div>
                       {user.unreadCount > 0 && (
                         <span className={styles.unreadBadge}>{user.unreadCount}</span>
@@ -794,6 +837,90 @@ export default function Home() {
               </div>
             </>
           )}
+
+          {/* SIDEBAR VIEW C: Super Admin "Admin Requests" Panel */}
+          {activeTab === 'requests' && currentUser.role === 'superadmin' && (
+            <div className={styles.requestsPanelContainer}>
+              <div className={styles.sidebarHeader}>
+                <h3 className={styles.sectionTitle} style={{ margin: 0, fontSize: '1rem', color: 'var(--text-primary)' }}>
+                  New Admin Requests ({adminRequests.length})
+                </h3>
+              </div>
+
+              <div className={styles.sidebarScrollArea}>
+                {adminRequests.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
+                    No admin requests pending.
+                  </div>
+                ) : (
+                  adminRequests.map((req) => (
+                    <div key={req.id} className={styles.requestCard}>
+                      <div className={styles.requestCardHeader}>
+                        {renderAvatar(req.photo, req.email.charAt(0).toUpperCase(), styles.requestAvatar)}
+                        <div className={styles.requestCardMeta}>
+                          <div className={styles.requestEmail}>{req.email}</div>
+                          <div className={styles.requestPhone}>{req.phone}</div>
+                          <div className={styles.requestPlace}>📍 {req.place}</div>
+                        </div>
+                      </div>
+
+                      <div className={styles.requestCardBody}>
+                        <div className={styles.requestCardRow}>
+                          <span className={styles.requestLabel}>Payment Plan:</span>
+                          <span className={styles.requestPlanBadge}>{req.paymentPlan}</span>
+                        </div>
+
+                        <div className={styles.requestCardRow}>
+                          <span className={styles.requestLabel}>Password:</span>
+                          <code className={styles.requestPasswordCode}>{req.password}</code>
+                        </div>
+
+                        <div className={styles.requestCardRow}>
+                          <span className={styles.requestLabel}>Submitted:</span>
+                          <span className={styles.requestDate}>{new Date(req.createdAt).toLocaleDateString()}</span>
+                        </div>
+
+                        <div className={styles.requestCardRow}>
+                          <span className={styles.requestLabel}>Status:</span>
+                          <span
+                            className={
+                              req.status === 'approved'
+                                ? styles.statusApproved
+                                : req.status === 'rejected'
+                                ? styles.statusRejected
+                                : styles.statusPending
+                            }
+                          >
+                            {req.status.toUpperCase()}
+                          </span>
+                        </div>
+                      </div>
+
+                      {req.status === 'pending' && (
+                        <div className={styles.requestCardActions}>
+                          <button
+                            className={styles.approveBtn}
+                            onClick={() => handleRequestAction(req.id, 'approve')}
+                            disabled={reqActionLoading === req.id}
+                          >
+                            {reqActionLoading === req.id ? 'Processing...' : '✓ Approve Admin'}
+                          </button>
+                          <button
+                            className={styles.rejectBtn}
+                            onClick={() => handleRequestAction(req.id, 'reject')}
+                            disabled={reqActionLoading === req.id}
+                          >
+                            ✕ Reject
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          )}
+
         </aside>
       )}
 
@@ -815,18 +942,26 @@ export default function Home() {
                 </button>
               )}
               
-              {renderAvatar(selectedUser.avatarUrl, selectedUser.username.charAt(0).toUpperCase(), styles.chatHeaderAvatar)}
+              <div className={styles.avatarWithPresence}>
+                {renderAvatar(selectedUser.avatarUrl, selectedUser.username.charAt(0).toUpperCase(), styles.chatHeaderAvatar)}
+                <span className={selectedUser.isOnline ? styles.presenceDotOnline : styles.presenceDotOffline} />
+              </div>
 
               <div className={styles.chatHeaderInfo}>
                 <span className={styles.chatHeaderName}>
                   {(currentUser.role === 'admin' || currentUser.role === 'superadmin') ? selectedUser.username : 'Admin Console'}
                 </span>
-                <span className={styles.chatHeaderStatus}>Online - Last seen, active</span>
+                <span className={styles.chatHeaderStatus}>
+                  {selectedUser.isOnline ? (
+                    <span style={{ color: '#10b981', fontWeight: '600' }}>• Online</span>
+                  ) : (
+                    <span>Last seen {formatLastSeenTime(selectedUser.lastSeen)}</span>
+                  )}
+                </span>
               </div>
 
-              {/* Chat Actions Header (Video and 3-dots removed, Audio call remains) */}
+              {/* Chat Actions Header */}
               <div className={styles.headerActions}>
-                {/* Audio Call Button */}
                 <button className={styles.iconBtn} onClick={() => handleStartCall('audio')} title="Audio Call">
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" width="22" height="22">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 0 0 2.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.387a12.035 12.035 0 0 1-7.108-7.108c-.155-.44.011-.927.387-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 0 0-1.091-.852H4.5A2.25 2.25 0 0 0 2.25 4.5v2.25Z" />
@@ -835,7 +970,7 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Chat Messages (Verified sender on right, receiver on left) */}
+            {/* Chat Messages */}
             <div className={styles.messagesList}>
               {messages.length === 0 ? (
                 <div style={{ textAlign: 'center', color: 'var(--text-secondary)', marginTop: '2rem', fontSize: '0.85rem' }}>
@@ -846,6 +981,8 @@ export default function Home() {
                   const currentUserId = currentUser.id || (currentUser.username?.toLowerCase() === 'admin' ? 'admin-id' : '');
                   const isSentByMe = msg.senderId === currentUserId;
                   const formattedTime = new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                  const formattedSeenTime = msg.readAt ? new Date(msg.readAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : formattedTime;
+
                   return (
                     <div 
                       key={msg.id} 
@@ -867,7 +1004,33 @@ export default function Home() {
                           )}
                           {msg.text && <p className={styles.messageText}>{msg.text}</p>}
                         </div>
-                        <span className={styles.messageTime}>{formattedTime}</span>
+
+                        {/* Time & Read Receipts */}
+                        <div className={styles.messageFooterRow}>
+                          <span className={styles.messageTime}>{formattedTime}</span>
+                          {isSentByMe && (
+                            <span className={styles.readReceiptWrapper}>
+                              {msg.read ? (
+                                <span className={styles.readReceiptSeen} title={`Seen at ${formattedSeenTime}`}>
+                                  {/* Double Checkmark */}
+                                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#0ea5e9" strokeWidth="2.5">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M9.5 12.75l6 6 9-13.5" />
+                                  </svg>
+                                  <span className={styles.seenLabel}>Seen {formattedSeenTime}</span>
+                                </span>
+                              ) : (
+                                <span className={styles.readReceiptSent} title="Delivered">
+                                  {/* Single Checkmark */}
+                                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.2">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                                  </svg>
+                                </span>
+                              )}
+                            </span>
+                          )}
+                        </div>
+
                       </div>
                     </div>
                   );
@@ -878,7 +1041,6 @@ export default function Home() {
 
             {/* Chat Input Bar */}
             <form className={styles.inputArea} onSubmit={handleSendMessage}>
-              {/* Photo Preview */}
               {uploadedImageUrl && (
                 <div className={styles.previewBar}>
                   <img src={uploadedImageUrl} alt="Upload preview" className={styles.previewImage} />
@@ -894,7 +1056,6 @@ export default function Home() {
               )}
 
               <div className={styles.inputRow}>
-                {/* Photo Input (Camera/Photo button) */}
                 <input 
                   type="file" 
                   ref={fileInputRef} 
@@ -903,7 +1064,6 @@ export default function Home() {
                   className={styles.fileInput} 
                 />
 
-                {/* Attachment Icon */}
                 <button
                   type="button"
                   className={styles.iconBtn}
@@ -934,7 +1094,6 @@ export default function Home() {
                     </button>
                   </div>
                 ) : (
-                  /* Input capsule container */
                   <div className={styles.inputFieldWrapper}>
                     <input
                       type="text"
@@ -944,10 +1103,8 @@ export default function Home() {
                       onChange={(e) => setInputText(e.target.value)}
                     />
                     
-                    {/* Emoji Picker */}
                     <EmojiPicker onEmojiSelect={handleEmojiSelect} />
 
-                    {/* Secondary Camera Icon in capsule */}
                     <button
                       type="button"
                       className={styles.iconBtn}
@@ -964,7 +1121,6 @@ export default function Home() {
                   </div>
                 )}
 
-                {/* Multi-action Voice / Send Button */}
                 {isRecording ? (
                   <button 
                     type="button" 
@@ -1004,13 +1160,9 @@ export default function Home() {
           </>
         ) : (
           <div className={styles.emptyChatState}>
-            <div className={styles.emptyChatIcon}>
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" width="36" height="36">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 20.25c4.97 0 9-3.694 9-8.25s-4.03-8.25-9-8.25S3 7.444 3 12c0 2.104.859 4.023 2.273 5.48.432.447.74 1.04.586 1.641l-.318 1.272a.406.406 0 0 0 .524.484l1.272-.318a.502.502 0 0 1 .524.116 8.971 8.971 0 0 0 4.148 1.025Z" />
-              </svg>
-            </div>
-            <h2>Admin Dashboard Console</h2>
-            <p style={{ marginTop: '0.5rem', opacity: 0.7 }}>Select a user from the sidebar to chat or manage call sessions.</p>
+            <OnChatLogo size={52} showText={true} />
+            <h2 style={{ marginTop: '1rem' }}>Welcome to OnChat</h2>
+            <p style={{ marginTop: '0.5rem', opacity: 0.7 }}>Select a conversation from the sidebar to start messaging.</p>
           </div>
         )}
       </main>
@@ -1052,92 +1204,72 @@ export default function Home() {
                 <label className={styles.modalLabel} htmlFor="newPassword">Password</label>
                 <input
                   id="newPassword"
-                  type="password"
+                  type="text"
                   className={styles.modalInput}
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder="e.g. anilpassword123"
-                  autoComplete="new-password"
+                  placeholder="e.g. Pass123"
+                  autoComplete="off"
                 />
               </div>
 
-              {/* Profile Avatar Selection */}
+              {/* Avatar Selection */}
               <div className={styles.modalFormGroup}>
-                <label className={styles.modalLabel}>Select Profile Avatar</label>
-                <div className={styles.avatarSelectionRow}>
-                  {/* Default colorful gradient choices */}
-                  {DEFAULT_AVATARS.map((avatar, idx) => (
-                    <div
-                      key={idx}
-                      className={`${styles.avatarSelectOption} ${selectedAvatar === avatar.value ? styles.avatarSelectOptionActive : ''}`}
-                      style={{ background: avatar.value }}
+                <label className={styles.modalLabel}>Profile Avatar / Photo</label>
+                <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                  {DEFAULT_AVATARS.map((av, index) => (
+                    <button
+                      key={index}
+                      type="button"
+                      style={{
+                        width: 32,
+                        height: 32,
+                        borderRadius: '50%',
+                        background: av.value,
+                        border: selectedAvatar === av.value && !customAvatarUrl ? '2px solid white' : 'none',
+                        cursor: 'pointer'
+                      }}
                       onClick={() => {
-                        setSelectedAvatar(avatar.value);
+                        setSelectedAvatar(av.value);
                         setCustomAvatarUrl('');
                       }}
-                      title={avatar.name}
+                      title={av.name}
                     />
                   ))}
-                  
-                  {/* Custom photo uploaded avatar */}
-                  {customAvatarUrl && (
-                    <img
-                      src={customAvatarUrl}
-                      alt="Custom upload"
-                      className={`${styles.avatarSelectOption} ${selectedAvatar === customAvatarUrl ? styles.avatarSelectOptionActive : ''}`}
-                      onClick={() => setSelectedAvatar(customAvatarUrl)}
-                    />
-                  )}
+                </div>
 
-                  {/* Upload Avatar Trigger button */}
+                {/* Upload Custom Avatar Button */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   <input
                     type="file"
                     ref={avatarInputRef}
-                    onChange={handleAvatarUpload}
+                    onChange={handleAvatarFileUpload}
                     accept="image/*"
-                    className={styles.fileInput}
+                    style={{ display: 'none' }}
                   />
-
                   <button
                     type="button"
-                    className={styles.avatarSelectOption}
-                    style={{
-                      border: '2px dashed var(--border-color)',
-                      backgroundColor: 'rgba(255,255,255,0.05)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: 'var(--text-secondary)'
-                    }}
+                    className={styles.secondaryBtn}
                     onClick={() => avatarInputRef.current?.click()}
                     disabled={isAvatarUploading}
-                    title="Upload Custom Photo"
+                    style={{ fontSize: '0.8rem', padding: '0.4rem 0.75rem' }}
                   >
-                    {isAvatarUploading ? (
-                      <span className={styles.spinner} style={{ borderTopColor: 'var(--accent-color)', marginRight: 0 }}></span>
-                    ) : (
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" width="20" height="20">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-                      </svg>
-                    )}
+                    {isAvatarUploading ? 'Uploading...' : 'Upload Image'}
                   </button>
+                  {customAvatarUrl && <span style={{ fontSize: '0.75rem', color: '#10b981' }}>✓ Image Selected</span>}
                 </div>
               </div>
 
               <div className={styles.modalActions}>
-                <button 
-                  type="button" 
-                  className={styles.secondaryBtn} 
-                  onClick={() => {
-                    setIsCreateModalOpen(false);
-                    setCreateError('');
-                    setCustomAvatarUrl('');
-                  }}
+                <button
+                  type="button"
+                  className={styles.secondaryBtn}
+                  onClick={() => setIsCreateModalOpen(false)}
                 >
                   Cancel
                 </button>
-                <button type="submit" className={styles.primaryBtn} disabled={isAvatarUploading}>
-                  Create User
+                <button type="submit" className={styles.primaryBtn}>
+                  Create Account
                 </button>
               </div>
             </form>
