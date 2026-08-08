@@ -182,6 +182,7 @@ export default function Home() {
           role: 'admin', 
           avatarUrl: '/uploads/avatar-admin.png' 
         });
+        setShowMobileChat(true); // Regular users automatically see chat
       }
     }
   }, [router]);
@@ -615,6 +616,7 @@ export default function Home() {
 
   const pendingRequests = adminRequests.filter(r => r.status === 'pending');
   const totalUnread = users.reduce((sum, u) => sum + (u.unreadCount || 0), 0);
+  const isRegularUser = currentUser?.role === 'user';
 
   if (isPageLoading) {
     return (
@@ -631,8 +633,8 @@ export default function Home() {
       {/* 1. COMPACT SLEEK TOP HEADER */}
       <header className={styles.topAppHeader}>
         <div className={styles.headerLeft}>
-          {/* Back Icon on mobile when chatting */}
-          {showMobileChat && (
+          {/* Back Icon on mobile when chatting for Admin/Superadmin */}
+          {showMobileChat && !isRegularUser && (
             <button
               className={styles.headerBackBtn}
               onClick={() => setShowMobileChat(false)}
@@ -676,8 +678,8 @@ export default function Home() {
       {/* 2. MAIN CONTENT SPLIT AREA (SIDEBAR + CHAT) */}
       <div className={styles.mainContentArea}>
         
-        {/* SIDEBAR: CHAT LIST, USER CREDENTIALS, OR ADMIN REQUESTS */}
-        {(currentUser.role === 'admin' || currentUser.role === 'superadmin') && (
+        {/* SIDEBAR: CHAT LIST, USER CREDENTIALS, OR ADMIN REQUESTS (For Admin / Super Admin) */}
+        {!isRegularUser && (
           <aside className={`${styles.sidebar} ${showMobileChat ? styles.sidebarHidden : ''}`}>
             
             {/* VIEW A: CHATS */}
@@ -862,20 +864,22 @@ export default function Home() {
         )}
 
         {/* MAIN CHAT WINDOW */}
-        <main className={`${styles.chatArea} ${showMobileChat ? styles.chatAreaActive : ''}`}>
+        <main className={`${styles.chatArea} ${showMobileChat || isRegularUser ? styles.chatAreaActive : ''}`}>
           {selectedUser ? (
             <>
               {/* Chat Header */}
               <div className={styles.chatHeader}>
-                <button 
-                  className={styles.backBtn} 
-                  onClick={() => setShowMobileChat(false)}
-                  title="Back to List"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" width="20" height="20">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
-                  </svg>
-                </button>
+                {!isRegularUser && (
+                  <button 
+                    className={styles.backBtn} 
+                    onClick={() => setShowMobileChat(false)}
+                    title="Back to List"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" width="20" height="20">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
+                    </svg>
+                  </button>
+                )}
                 
                 <div className={styles.avatarWithPresence}>
                   {renderAvatar(selectedUser.avatarUrl, selectedUser.username.charAt(0).toUpperCase(), styles.chatHeaderAvatar)}
@@ -1115,6 +1119,7 @@ export default function Home() {
                 role: 'admin', 
                 avatarUrl: '/uploads/avatar-admin.png' 
               });
+              setShowMobileChat(true);
             }
           }}
         >
