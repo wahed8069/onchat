@@ -100,7 +100,9 @@ export async function DELETE(request) {
 
   try {
     if (clearAll) {
-      const chatUserId = targetUserId || (currentUser.creatorId || 'admin-id');
+      const chatUserId = (currentUser.role === 'admin' || currentUser.role === 'superadmin')
+        ? targetUserId
+        : (currentUser.creatorId || 'admin-id');
       
       if (!chatUserId) {
         return Response.json({ error: 'Target user ID is required to clear chat' }, { status: 400 });

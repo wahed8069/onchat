@@ -117,7 +117,7 @@
   overflow: hidden;
 }
 
-.mainContentAreaFull {
+.mainContentAreaNoFooter {
   height: calc(100vh - 68px) !important;
 }
 

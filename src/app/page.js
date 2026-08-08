@@ -798,17 +798,6 @@ export default function Home() {
             )}
           </button>
 
-          {/* Header Logout Button */}
-          <button
-            className={styles.headerThemeBtn}
-            onClick={triggerLogoutModal}
-            title="Log Out"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" width="18" height="18">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9" />
-            </svg>
-          </button>
-
           {/* User Profile Badge */}
           <div className={styles.topHeaderUser} title={`Logged in as ${currentUser.username}`}>
             {renderAvatar(currentUser.avatarUrl, currentUser.username.charAt(0).toUpperCase(), styles.topAvatar)}
@@ -819,7 +808,7 @@ export default function Home() {
       </header>
 
       {/* 2. MAIN CONTENT SPLIT AREA (SIDEBAR + CHAT) */}
-      <div className={`${styles.mainContentArea} ${isRegularUser ? styles.mainContentAreaFull : ''}`}>
+      <div className={`${styles.mainContentArea} ${isRegularUser ? styles.mainContentAreaNoFooter : ''}`}>
         
         {/* SIDEBAR: CHAT LIST, USER CREDENTIALS, OR ADMIN REQUESTS (For Admin / Super Admin) */}
         {!isRegularUser && (
@@ -1100,22 +1089,43 @@ export default function Home() {
                   </span>
                 </div>
 
-                {/* Header Actions: Audio Call (Admin/Superadmin only) + Clear Chat */}
+                {/* Header Actions */}
                 <div className={styles.headerActions}>
-                  {!isRegularUser && (
-                    <button className={styles.iconBtn} onClick={() => handleStartCall('audio')} title="Audio Call">
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" width="22" height="22">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 0 0 2.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.387a12.035 12.035 0 0 1-7.108-7.108c-.155-.44.011-.927.387-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 0 0-1.091-.852H4.5A2.25 2.25 0 0 0 2.25 4.5v2.25Z" />
-                      </svg>
-                    </button>
-                  )}
+                  {isRegularUser ? (
+                    <>
+                      <button className={styles.iconBtn} onClick={toggleTheme} title="Toggle Theme">
+                        {theme === 'light' ? (
+                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" width="20" height="20">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M21.752 15.002A9.72 9.72 0 0 1 18 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 0 0 3 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 0 0 9.002-5.998Z" />
+                          </svg>
+                        ) : (
+                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" width="20" height="20">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v2.25m0 13.5V21M5.22 5.22l1.59 1.59m10.38 10.38l1.59 1.59M12 7.5a4.5 4.5 0 1 0 0 9 4.5 4.5 0 0 0 0-9zM3 12h2.25m13.5 0H21M5.22 18.78l1.59-1.59m10.38-10.38l1.59-1.59" />
+                          </svg>
+                        )}
+                      </button>
+                      <button className={styles.iconBtnDanger} onClick={triggerLogoutModal} title="Log Out">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" width="20" height="20">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9" />
+                        </svg>
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button className={styles.iconBtn} onClick={() => handleStartCall('audio')} title="Audio Call">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" width="22" height="22">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 0 0 2.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.387a12.035 12.035 0 0 1-7.108-7.108c-.155-.44.011-.927.387-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 0 0-1.091-.852H4.5A2.25 2.25 0 0 0 2.25 4.5v2.25Z" />
+                        </svg>
+                      </button>
 
-                  <button className={styles.clearChatHeaderBtn} onClick={triggerClearChatModal} title="Clear Chat History">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" width="16" height="16">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 9.75 14.25 12m0 0l2.25 2.25M14.25 12l2.25-2.25M14.25 12L12 14.25m-2.58 4.92-6.374-6.375a1.125 1.125 0 0 1 0-1.59L9.42 4.83c.211-.211.498-.33.796-.33H19.5a2.25 2.25 0 0 1 2.25 2.25v10.5a2.25 2.25 0 0 1-2.25 2.25h-9.284c-.298 0-.585-.119-.796-.33Z" />
-                    </svg>
-                    <span>Clear Chat</span>
-                  </button>
+                      <button className={styles.clearChatHeaderBtn} onClick={triggerClearChatModal} title="Clear Chat History">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" width="16" height="16">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M12 9.75 14.25 12m0 0l2.25 2.25M14.25 12l2.25-2.25M14.25 12L12 14.25m-2.58 4.92-6.374-6.375a1.125 1.125 0 0 1 0-1.59L9.42 4.83c.211-.211.498-.33.796-.33H19.5a2.25 2.25 0 0 1 2.25 2.25v10.5a2.25 2.25 0 0 1-2.25 2.25h-9.284c-.298 0-.585-.119-.796-.33Z" />
+                        </svg>
+                        <span>Clear Chat</span>
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
 
@@ -1332,7 +1342,9 @@ export default function Home() {
           {/* Chats Tab */}
           <button 
             className={`${styles.footerTabBtn} ${activeTab === 'chats' ? styles.footerTabBtnActive : ''}`} 
-            onClick={() => setActiveTab('chats')}
+            onClick={() => {
+              setActiveTab('chats');
+            }}
           >
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" width="20" height="20">
               <path strokeLinecap="round" strokeLinejoin="round" d="M8.625 12a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H8.25m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H12m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 0 1-2.555-.337A5.972 5.972 0 0 1 5.41 20.97a5.969 5.969 0 0 1-.474-.065 4.48 4.48 0 0 0 .978-2.025 4.486 4.486 0 0 0-.406-1.106C3.743 16.584 3 14.39 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25Z" />
@@ -1398,7 +1410,6 @@ export default function Home() {
           </button>
         </footer>
       )}
-
       {/* ACTIVE CALL SIGNALING OVERLAY */}
       {activeCall && (
         <CallOverlay
