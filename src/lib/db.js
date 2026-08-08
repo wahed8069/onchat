@@ -209,22 +209,23 @@ export function getUsers() {
 // Admin Requests Operations
 export function createAdminRequest({ email, phone, password, place, photo, paymentPlan }) {
   const db = readDb();
+  const cleanEmail = email.trim();
 
-  // Check if email or username already exists in users or pending requests
-  const usernameFromEmail = email.split('@')[0];
-  const userExists = db.users.some(u => u.username.toLowerCase() === usernameFromEmail.toLowerCase() || (u.email && u.email.toLowerCase() === email.toLowerCase()));
-  if (userExists) {
-    throw new Error('An account with this email/username already exists');
+  // Check if this exact email already exists in users or pending admin requests
+  const emailExists = db.users.some(u => u.email && u.email.toLowerCase() === cleanEmail.toLowerCase()) ||
+                      db.adminRequests.some(r => r.email && r.email.toLowerCase() === cleanEmail.toLowerCase() && r.status === 'pending');
+  if (emailExists) {
+    throw new Error('An admin request or account with this email already exists.');
   }
 
   const newRequest = {
     id: 'req-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9),
-    email,
-    phone,
-    password,
-    place,
+    email: cleanEmail,
+    phone: phone ? phone.trim() : '',
+    password: password.trim(),
+    place: place ? place.trim() : '',
     photo: photo || '/uploads/avatar-admin.png',
-    paymentPlan: paymentPlan || 'Pro Plan',
+    paymentPlan: paymentPlan || 'Pro Admin',
     status: 'pending',
     createdAt: new Date().toISOString()
   };
@@ -250,47 +251,52 @@ export function updateAdminRequestStatus(requestId, action) {
   if (action === 'approve') {
     const cleanEmail = req.email.trim();
     const cleanPassword = req.password.trim();
+    const cleanPhone = req.phone ? req.phone.trim() : '';
+    const cleanPlace = req.place ? req.place.trim() : '';
 
-    // Check if user account with this email/username already exists in db.users
+    // Check if user with this email or username already exists in db.users
     const existingIndex = db.users.findIndex(u => 
-      u.username.toLowerCase() === cleanEmail.toLowerCase() ||
+      (u.username && u.username.toLowerCase() === cleanEmail.toLowerCase()) ||
       (u.email && u.email.toLowerCase() === cleanEmail.toLowerCase())
     );
 
     let createdAdmin;
 
     if (existingIndex !== -1) {
-      // Update existing user to admin role with new password and details
-      db.users[existingIndex] = {
-        ...db.users[existingIndex],
+      // Update existing user to admin role
+      db.users[existingIndex].username = cleanEmail;
+      db.users[existingIndex].email = cleanEmail;
+      db.users[existingIndex].password = cleanPassword;
+      db.users[existingIndex].passwordHash = hashPassword(cleanPassword);
+      db.users[existingIndex].role = 'admin';
+      db.users[existingIndex].avatarUrl = req.photo || db.users[existingIndex].avatarUrl || '/uploads/avatar-admin.png';
+      db.users[existingIndex].phone = cleanPhone;
+      db.users[existingIndex].place = cleanPlace;
+      db.users[existingIndex].paymentPlan = req.paymentPlan;
+      db.users[existingIndex].lastSeen = new Date().toISOString();
+
+      const { passwordHash, ...userWithoutPass } = db.users[existingIndex];
+      createdAdmin = userWithoutPass;
+    } else {
+      // Create new admin user object directly
+      const newAdminUser = {
+        id: 'admin-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9),
         username: cleanEmail,
         email: cleanEmail,
         password: cleanPassword,
         passwordHash: hashPassword(cleanPassword),
         role: 'admin',
-        avatarUrl: req.photo || db.users[existingIndex].avatarUrl || '/uploads/avatar-admin.png',
-        phone: req.phone,
-        place: req.place,
+        avatarUrl: req.photo || '/uploads/avatar-admin.png',
+        creatorId: 'superadmin-id',
+        phone: cleanPhone,
+        place: cleanPlace,
         paymentPlan: req.paymentPlan,
         lastSeen: new Date().toISOString()
       };
-      const { passwordHash, ...userWithoutPass } = db.users[existingIndex];
+
+      db.users.push(newAdminUser);
+      const { passwordHash, ...userWithoutPass } = newAdminUser;
       createdAdmin = userWithoutPass;
-    } else {
-      // Create fresh admin user
-      createdAdmin = createUser(
-        cleanEmail,
-        cleanPassword,
-        'admin',
-        req.photo || '/uploads/avatar-admin.png',
-        'superadmin-id',
-        {
-          email: cleanEmail,
-          phone: req.phone,
-          place: req.place,
-          paymentPlan: req.paymentPlan
-        }
-      );
     }
 
     req.status = 'approved';
