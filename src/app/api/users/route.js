@@ -37,8 +37,10 @@ export async function GET() {
       // Super Admin sees and manages only regular Admins (exclude superadmin and regular users)
       filteredUsers = users.filter(u => u.role === 'admin');
     } else {
-      // Regular Admin sees and manages regular Users (exclude other admins and superadmin)
-      filteredUsers = users.filter(u => u.role === 'user');
+      // Regular Admin sees and manages regular Users created under their admin account
+      filteredUsers = users.filter(u => 
+        u.role === 'user' && (u.creatorId === currentUser.id || (!u.creatorId && currentUser.id === 'admin-id'))
+      );
     }
 
     const now = Date.now();
