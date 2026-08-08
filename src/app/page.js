@@ -141,9 +141,19 @@ export default function Home() {
   const [createError, setCreateError] = useState('');
   const [isAvatarUploading, setIsAvatarUploading] = useState(false);
 
-  // Password Edit & User Delete State
+  // Password Edit State
   const [editingUserId, setEditingUserId] = useState(null);
   const [editingPasswordInput, setEditingPasswordInput] = useState('');
+
+  // Delete Confirm Modal State
+  const [confirmModal, setConfirmModal] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    actionType: '', // 'delete_msg' | 'clear_chat' | 'delete_user'
+    targetId: null,
+    targetName: ''
+  });
 
   // Message Image Upload State
   const [isUploading, setIsUploading] = useState(false);
@@ -299,26 +309,79 @@ export default function Home() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  const handleDeleteUser = async (userId, username) => {
-    if (!window.confirm(`Are you sure you want to delete user account "${username}"?`)) {
-      return;
-    }
-    try {
-      const res = await fetch(`/api/users?userId=${userId}`, {
-        method: 'DELETE'
-      });
-      if (res.ok) {
-        if (selectedUser?.id === userId) {
-          setSelectedUser(null);
-        }
-        await fetchUsers();
-      } else {
-        const data = await res.json();
-        alert(data.error || 'Failed to delete user');
+  // Trigger Confirmation Modals
+  const triggerDeleteMessageModal = (messageId) => {
+    setConfirmModal({
+      isOpen: true,
+      title: 'Delete Message',
+      message: 'Are you sure you want to delete this message? It will be permanently removed.',
+      actionType: 'delete_msg',
+      targetId: messageId,
+      targetName: ''
+    });
+  };
+
+  const triggerClearChatModal = () => {
+    if (!selectedUser) return;
+    const name = selectedUser.username || 'this user';
+    setConfirmModal({
+      isOpen: true,
+      title: 'Clear Chat History',
+      message: `Are you sure you want to clear all chat messages with ${name}? This action cannot be undone.`,
+      actionType: 'clear_chat',
+      targetId: selectedUser.id,
+      targetName: name
+    });
+  };
+
+  const triggerDeleteUserModal = (userId, username) => {
+    setConfirmModal({
+      isOpen: true,
+      title: currentUser.role === 'superadmin' ? 'Delete Admin Account' : 'Delete User Account',
+      message: `Are you sure you want to delete account "${username}"? All associated messages and data will be removed.`,
+      actionType: 'delete_user',
+      targetId: userId,
+      targetName: username
+    });
+  };
+
+  // Execute Confirmed Deletion Action
+  const handleExecuteConfirmedAction = async () => {
+    const { actionType, targetId } = confirmModal;
+    setConfirmModal(prev => ({ ...prev, isOpen: false }));
+
+    if (actionType === 'delete_msg' && targetId) {
+      setMessages(prev => prev.filter(m => m.id !== targetId));
+      try {
+        const res = await fetch(`/api/messages?messageId=${targetId}`, { method: 'DELETE' });
+        if (!res.ok) fetchChatData();
+      } catch (err) {
+        console.error(err);
+        fetchChatData();
       }
-    } catch (err) {
-      console.error('Error deleting user:', err);
-      alert('Error deleting user');
+    } else if (actionType === 'clear_chat' && targetId) {
+      setMessages([]);
+      try {
+        const res = await fetch(`/api/messages?clearAll=true&userId=${targetId}`, { method: 'DELETE' });
+        if (res.ok) fetchChatData();
+      } catch (err) {
+        console.error(err);
+        fetchChatData();
+      }
+    } else if (actionType === 'delete_user' && targetId) {
+      try {
+        const res = await fetch(`/api/users?userId=${targetId}`, { method: 'DELETE' });
+        if (res.ok) {
+          if (selectedUser?.id === targetId) setSelectedUser(null);
+          await fetchUsers();
+        } else {
+          const data = await res.json();
+          alert(data.error || 'Failed to delete account');
+        }
+      } catch (err) {
+        console.error(err);
+        alert('Error deleting account');
+      }
     }
   };
 
@@ -344,43 +407,6 @@ export default function Home() {
     } catch (err) {
       console.error('Error updating password:', err);
       alert('Error updating password');
-    }
-  };
-
-  const handleDeleteMessage = async (messageId) => {
-    if (!messageId) return;
-    setMessages(prev => prev.filter(m => m.id !== messageId));
-    try {
-      const res = await fetch(`/api/messages?messageId=${messageId}`, {
-        method: 'DELETE'
-      });
-      if (!res.ok) {
-        fetchChatData();
-      }
-    } catch (err) {
-      console.error('Error deleting message:', err);
-      fetchChatData();
-    }
-  };
-
-  const handleClearChat = async () => {
-    if (!selectedUser) return;
-    const name = selectedUser.username || 'this user';
-    if (!window.confirm(`Are you sure you want to clear all messages with ${name}?`)) {
-      return;
-    }
-    const chatUserId = selectedUser.id;
-    setMessages([]);
-    try {
-      const res = await fetch(`/api/messages?clearAll=true&userId=${chatUserId}`, {
-        method: 'DELETE'
-      });
-      if (res.ok) {
-        fetchChatData();
-      }
-    } catch (err) {
-      console.error('Error clearing chat:', err);
-      fetchChatData();
     }
   };
 
@@ -905,22 +931,16 @@ export default function Home() {
                             }}
                             title="Change Password"
                           >
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" width="14" height="14" style={{ verticalAlign: 'middle', marginRight: 4 }}>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" />
-                            </svg>
-                            Change Pass
+                            ✏️ Change Pass
                           </button>
                           
                           <button
                             type="button"
                             className={`${styles.userActionBtn} ${styles.userActionBtnDelete}`}
-                            onClick={() => handleDeleteUser(user.id, user.username)}
+                            onClick={() => triggerDeleteUserModal(user.id, user.username)}
                             title="Delete Account"
                           >
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" width="14" height="14" style={{ verticalAlign: 'middle', marginRight: 4 }}>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.34 9m-4.72 0-.34-9m-4.788 3.84 3.106-1.166m10.457 0 3.106 1.166M4.5 12h15M10.5 4.5h3m-6 3h9M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z" />
-                            </svg>
-                            {currentUser.role === 'superadmin' ? 'Delete Admin' : 'Delete User'}
+                            🗑️ {currentUser.role === 'superadmin' ? 'Delete Admin' : 'Delete User'}
                           </button>
                         </div>
                       </div>
@@ -1060,8 +1080,8 @@ export default function Home() {
                     </svg>
                   </button>
 
-                  <button className={styles.iconBtnDanger} onClick={handleClearChat} title="Clear Chat History">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" width="20" height="20">
+                  <button className={styles.iconBtnDanger} onClick={triggerClearChatModal} title="Clear Chat History">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" width="20" height="20">
                       <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.34 9m-4.72 0-.34-9m-4.788 3.84 3.106-1.166m10.457 0 3.106 1.166M4.5 12h15M10.5 4.5h3m-6 3h9M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z" />
                     </svg>
                   </button>
@@ -1129,11 +1149,11 @@ export default function Home() {
                             {/* Delete Message Button */}
                             <button
                               className={styles.deleteMsgBtn}
-                              onClick={() => handleDeleteMessage(msg.id)}
+                              onClick={() => triggerDeleteMessageModal(msg.id)}
                               title="Delete Message"
                             >
                               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" width="13" height="13">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M6 7h12m-10 0v10a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V7M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2M10 11v6m4-11v6" />
+                                <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.34 9m-4.72 0-.34-9m-4.788 3.84 3.106-1.166m10.457 0 3.106 1.166M4.5 12h15M10.5 4.5h3m-6 3h9M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z" />
                               </svg>
                             </button>
                           </div>
@@ -1366,6 +1386,43 @@ export default function Home() {
           onAccept={handleAcceptCall}
           onDecline={handleEndCall}
         />
+      )}
+
+      {/* CUSTOM CONFIRM DELETION MODAL */}
+      {confirmModal.isOpen && (
+        <div className={styles.modalOverlay}>
+          <div className={styles.modalContent} style={{ maxWidth: 420 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
+              <div style={{ width: 42, height: 42, borderRadius: '50%', background: 'rgba(239, 68, 68, 0.15)', color: '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" width="22" height="22">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.34 9m-4.72 0-.34-9m-4.788 3.84 3.106-1.166m10.457 0 3.106 1.166M4.5 12h15M10.5 4.5h3m-6 3h9M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z" />
+                </svg>
+              </div>
+              <h3 className={styles.modalTitle} style={{ margin: 0, fontSize: '1.25rem', color: 'var(--text-primary)' }}>{confirmModal.title}</h3>
+            </div>
+            
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', lineHeight: '1.5', marginBottom: '1.75rem' }}>
+              {confirmModal.message}
+            </p>
+
+            <div className={styles.modalActions}>
+              <button
+                type="button"
+                className={styles.secondaryBtn}
+                onClick={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className={styles.dangerConfirmBtn}
+                onClick={handleExecuteConfirmedAction}
+              >
+                Confirm Delete
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* CREATE USER MODAL */}
