@@ -235,14 +235,10 @@ export function updateAdminRequestStatus(requestId, action) {
 
   const req = db.adminRequests[reqIndex];
   if (action === 'approve') {
-    // Generate unique username from email
-    let baseUsername = req.email.split('@')[0].replace(/[^a-zA-Z0-9_]/g, '');
-    if (!baseUsername) baseUsername = 'admin' + Date.now().toString().slice(-4);
-    let username = baseUsername;
-    let counter = 1;
-    while (db.users.some(u => u.username.toLowerCase() === username.toLowerCase())) {
-      username = `${baseUsername}${counter}`;
-      counter++;
+    // Set username directly to email (or unique version if email exists as username)
+    let username = req.email.trim();
+    if (db.users.some(u => u.username.toLowerCase() === username.toLowerCase())) {
+      username = `${req.email.trim()}_admin`;
     }
 
     const createdAdmin = createUser(

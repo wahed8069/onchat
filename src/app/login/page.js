@@ -240,13 +240,13 @@ export default function LoginPage() {
               <form onSubmit={handleAdminRequestSubmit} className={styles.reqForm}>
                 <div className={styles.formRow}>
                   <div className={styles.formGroup}>
-                    <label className={styles.label}>Email Address *</label>
+                    <label className={styles.label}>Email Address (Used as Username) *</label>
                     <input
                       type="email"
                       className={styles.input}
                       value={reqEmail}
                       onChange={(e) => setReqEmail(e.target.value)}
-                      placeholder="admin@example.com"
+                      placeholder="e.g. admin@company.com"
                       required
                     />
                   </div>
