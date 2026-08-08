@@ -117,6 +117,10 @@
   overflow: hidden;
 }
 
+.mainContentAreaFull {
+  height: calc(100vh - 68px) !important;
+}
+
 /* SIDEBAR (CHAT LISTS & PANELS) */
 .sidebar {
   width: 320px;
