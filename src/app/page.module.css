@@ -9,14 +9,14 @@
   gap: 0;
 }
 
-/* SLEEK TOP APP HEADER (56px Height with breathing room) */
+/* SLEEK TOP APP HEADER (60px Height with breathing room) */
 .topAppHeader {
-  height: 56px;
+  height: 60px;
   width: 100%;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0.4rem 1rem;
+  padding: 0.5rem 1rem;
   background: var(--glass-bg);
   border-bottom: 1.5px solid var(--border-color);
   flex-shrink: 0;
@@ -112,7 +112,7 @@
   display: flex;
   flex: 1;
   width: 100%;
-  height: calc(100vh - 56px - 56px);
+  height: calc(100vh - 60px - 56px);
   overflow: hidden;
 }
 
@@ -1421,10 +1421,104 @@
   border: 1.5px solid var(--bg-primary);
 }
 
+/* USER ACCOUNT MANAGEMENT CARDS */
+.userCardManage {
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  background-color: transparent;
+  transition: background-color var(--transition-fast);
+}
+
+.userCardManage:hover {
+  background-color: var(--bg-secondary);
+}
+
+.userCardManageTop {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.passwordEditRow {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-top: 0.25rem;
+}
+
+.passwordInputEdit {
+  flex: 1;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.8rem;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+.savePassBtn {
+  background-color: #10b981;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 0.25rem 0.55rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.cancelPassBtn {
+  background-color: var(--bg-secondary);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 0.25rem 0.55rem;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.userCardActions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.userActionBtn {
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.25rem 0.6rem;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.userActionBtn:hover {
+  background-color: var(--text-primary);
+  color: var(--bg-primary);
+}
+
+.userActionBtnDelete {
+  border-color: rgba(239, 68, 68, 0.3);
+  color: #ef4444;
+}
+
+.userActionBtnDelete:hover {
+  background-color: #ef4444;
+  color: white;
+  border-color: #ef4444;
+}
+
 /* MOBILE & PHONE RESPONSIVE FLOW */
 @media (max-width: 768px) {
   .topAppHeader {
-    height: 56px;
+    height: 60px;
     padding: 0.4rem 0.85rem;
   }
 
@@ -1433,7 +1527,7 @@
   }
 
   .mainContentArea {
-    height: calc(100vh - 56px - 56px);
+    height: calc(100vh - 60px - 56px);
     width: 100vw;
     position: relative;
     overflow: hidden;
@@ -1472,6 +1566,7 @@
     font-size: 0.68rem;
   }
 }
+
 
 
 

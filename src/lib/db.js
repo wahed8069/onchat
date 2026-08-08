@@ -159,6 +159,35 @@ export function createUser(username, password, role = 'user', avatarUrl = '', cr
   return userWithoutPassword;
 }
 
+export function updateUserPassword(userId, newPassword) {
+  const db = readDb();
+  const user = db.users.find(u => u.id === userId);
+  if (!user) {
+    throw new Error('User not found');
+  }
+
+  user.password = newPassword;
+  user.passwordHash = hashPassword(newPassword);
+  writeDb(db);
+  const { passwordHash, ...userWithoutHash } = user;
+  return userWithoutHash;
+}
+
+export function deleteUser(userId) {
+  const db = readDb();
+  const index = db.users.findIndex(u => u.id === userId);
+  if (index === -1) {
+    throw new Error('User not found');
+  }
+
+  db.users.splice(index, 1);
+  // Delete all messages associated with user
+  db.messages = db.messages.filter(m => m.senderId !== userId && m.receiverId !== userId);
+  writeDb(db);
+  return true;
+}
+
+
 export function getUsers() {
   const db = readDb();
   return db.users; // Return everything including password so Admin can see it

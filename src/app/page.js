@@ -132,7 +132,7 @@ export default function Home() {
   const [adminRequests, setAdminRequests] = useState([]);
   const [reqActionLoading, setReqActionLoading] = useState(null);
 
-  // User Creation State
+  // User Creation & Editing State
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [newUsername, setNewUsername] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -140,6 +140,10 @@ export default function Home() {
   const [customAvatarUrl, setCustomAvatarUrl] = useState('');
   const [createError, setCreateError] = useState('');
   const [isAvatarUploading, setIsAvatarUploading] = useState(false);
+
+  // Password Edit & User Delete State
+  const [editingUserId, setEditingUserId] = useState(null);
+  const [editingPasswordInput, setEditingPasswordInput] = useState('');
 
   // Message Image Upload State
   const [isUploading, setIsUploading] = useState(false);
@@ -294,6 +298,54 @@ export default function Home() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  const handleDeleteUser = async (userId, username) => {
+    if (!window.confirm(`Are you sure you want to delete user account "${username}"?`)) {
+      return;
+    }
+    try {
+      const res = await fetch(`/api/users?userId=${userId}`, {
+        method: 'DELETE'
+      });
+      if (res.ok) {
+        if (selectedUser?.id === userId) {
+          setSelectedUser(null);
+        }
+        await fetchUsers();
+      } else {
+        const data = await res.json();
+        alert(data.error || 'Failed to delete user');
+      }
+    } catch (err) {
+      console.error('Error deleting user:', err);
+      alert('Error deleting user');
+    }
+  };
+
+  const handleSaveUserPassword = async (userId) => {
+    if (!editingPasswordInput.trim()) {
+      alert('Password cannot be empty');
+      return;
+    }
+    try {
+      const res = await fetch('/api/users', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, newPassword: editingPasswordInput.trim() })
+      });
+      if (res.ok) {
+        setEditingUserId(null);
+        setEditingPasswordInput('');
+        await fetchUsers();
+      } else {
+        const data = await res.json();
+        alert(data.error || 'Failed to update password');
+      }
+    } catch (err) {
+      console.error('Error updating password:', err);
+      alert('Error updating password');
+    }
+  };
 
   const handleDeleteMessage = async (messageId) => {
     if (!messageId) return;
@@ -667,7 +719,7 @@ export default function Home() {
   return (
     <div className={styles.appContainer}>
       
-      {/* 1. TOP APP HEADER (Sleek 56px Height with breathing room) */}
+      {/* 1. TOP APP HEADER (Spaced down comfortably with breathing room) */}
       <header className={styles.topAppHeader}>
         <div className={styles.headerLeft}>
           {/* Back Icon on mobile when chatting for Admin/Superadmin */}
@@ -778,7 +830,7 @@ export default function Home() {
               </>
             )}
 
-            {/* VIEW B: USERS & PASSWORDS */}
+            {/* VIEW B: USERS & PASSWORDS (MANAGEMENT WITH DELETE & PASSWORD CHANGE) */}
             {activeTab === 'users' && (
               <>
                 <div className={styles.sidebarHeader}>
@@ -796,16 +848,74 @@ export default function Home() {
                     <div style={{ textAlign: 'center', padding: '2rem 1rem', color: 'var(--text-secondary)' }}>No accounts created.</div>
                   ) : (
                     users.map((user) => (
-                      <div key={user.id} className={styles.userItem} style={{ borderBottom: '1px solid var(--border-color)', borderRadius: 0 }}>
-                        {renderAvatar(user.avatarUrl, user.username.charAt(0).toUpperCase())}
-                        <div className={styles.userMeta}>
-                          <div className={styles.userItemName} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <span>{user.username}</span>
-                            <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{user.id.substring(0, 8)}</span>
+                      <div key={user.id} className={styles.userCardManage}>
+                        <div className={styles.userCardManageTop}>
+                          {renderAvatar(user.avatarUrl, user.username.charAt(0).toUpperCase())}
+                          <div className={styles.userMeta} style={{ flex: 1 }}>
+                            <div className={styles.userItemName} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <span>{user.username}</span>
+                              <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>{user.id.substring(0, 8)}</span>
+                            </div>
+                            
+                            {editingUserId === user.id ? (
+                              <div className={styles.passwordEditRow}>
+                                <input
+                                  type="text"
+                                  className={styles.passwordInputEdit}
+                                  value={editingPasswordInput}
+                                  onChange={(e) => setEditingPasswordInput(e.target.value)}
+                                  placeholder="New password"
+                                />
+                                <button
+                                  type="button"
+                                  className={styles.savePassBtn}
+                                  onClick={() => handleSaveUserPassword(user.id)}
+                                  title="Save Password"
+                                >
+                                  ✓
+                                </button>
+                                <button
+                                  type="button"
+                                  className={styles.cancelPassBtn}
+                                  onClick={() => {
+                                    setEditingUserId(null);
+                                    setEditingPasswordInput('');
+                                  }}
+                                  title="Cancel"
+                                >
+                                  ✕
+                                </button>
+                              </div>
+                            ) : (
+                              <div className={styles.userItemPassword}>
+                                Password: <strong>{user.password}</strong>
+                              </div>
+                            )}
                           </div>
-                          <div className={styles.userItemPassword} title="Copy password">
-                            Password: {user.password}
-                          </div>
+                        </div>
+
+                        {/* Account Actions: Change Password & Delete User */}
+                        <div className={styles.userCardActions}>
+                          <button
+                            type="button"
+                            className={styles.userActionBtn}
+                            onClick={() => {
+                              setEditingUserId(user.id);
+                              setEditingPasswordInput(user.password || '');
+                            }}
+                            title="Change User Password"
+                          >
+                            ✏️ Change Pass
+                          </button>
+                          
+                          <button
+                            type="button"
+                            className={`${styles.userActionBtn} ${styles.userActionBtnDelete}`}
+                            onClick={() => handleDeleteUser(user.id, user.username)}
+                            title="Delete User Account"
+                          >
+                            🗑️ Delete User
+                          </button>
                         </div>
                       </div>
                     ))
@@ -939,7 +1049,7 @@ export default function Home() {
                 {/* Header Actions: Audio Call + Clear Chat */}
                 <div className={styles.headerActions}>
                   <button className={styles.iconBtn} onClick={() => handleStartCall('audio')} title="Audio Call">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" width="20" height="20">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" width="22" height="22">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 0 0 2.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.387a12.035 12.035 0 0 1-7.108-7.108c-.155-.44.011-.927.387-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 0 0-1.091-.852H4.5A2.25 2.25 0 0 0 2.25 4.5v2.25Z" />
                     </svg>
                   </button>

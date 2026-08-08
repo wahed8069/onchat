@@ -1,5 +1,5 @@
 import { cookies } from 'next/headers';
-import { getUsers, createUser, readDb, updateUserLastSeen } from '@/lib/db';
+import { getUsers, createUser, readDb, updateUserLastSeen, updateUserPassword, deleteUser } from '@/lib/db';
 
 async function getSessionUser() {
   try {
@@ -103,5 +103,48 @@ export async function POST(request) {
       { error: error.message || 'Internal Server Error' },
       { status: 500 }
     );
+  }
+}
+
+export async function PATCH(request) {
+  const currentUser = await getSessionUser();
+  if (!currentUser || (currentUser.role !== 'admin' && currentUser.role !== 'superadmin')) {
+    return Response.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  try {
+    const { userId, newPassword } = await request.json();
+
+    if (!userId || !newPassword) {
+      return Response.json({ error: 'userId and newPassword are required' }, { status: 400 });
+    }
+
+    const updatedUser = updateUserPassword(userId, newPassword);
+    return Response.json({ success: true, user: updatedUser });
+  } catch (error) {
+    console.error('Error updating user password:', error);
+    return Response.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
+  }
+}
+
+export async function DELETE(request) {
+  const currentUser = await getSessionUser();
+  if (!currentUser || (currentUser.role !== 'admin' && currentUser.role !== 'superadmin')) {
+    return Response.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  const { searchParams } = new URL(request.url);
+  const userId = searchParams.get('userId');
+
+  if (!userId) {
+    return Response.json({ error: 'userId query parameter is required' }, { status: 400 });
+  }
+
+  try {
+    deleteUser(userId);
+    return Response.json({ success: true, message: 'User deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting user:', error);
+    return Response.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
   }
 }
