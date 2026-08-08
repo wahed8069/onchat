@@ -628,10 +628,43 @@ export default function Home() {
   return (
     <div className={styles.appContainer}>
       
-      {/* 1. TOP HEADER WITH LOGO & USER PROFILE */}
+      {/* 1. COMPACT SLEEK TOP HEADER */}
       <header className={styles.topAppHeader}>
-        <OnChatLogo size={34} showText={true} />
+        <div className={styles.headerLeft}>
+          {/* Back Icon on mobile when chatting */}
+          {showMobileChat && (
+            <button
+              className={styles.headerBackBtn}
+              onClick={() => setShowMobileChat(false)}
+              title="Back to list"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" width="20" height="20">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
+              </svg>
+            </button>
+          )}
+          <OnChatLogo size={30} showText={true} />
+        </div>
+
         <div className={styles.topHeaderRight}>
+          {/* Header Theme Toggle Button */}
+          <button 
+            className={styles.headerThemeBtn} 
+            onClick={toggleTheme}
+            title={theme === 'light' ? 'Switch to Dark Mode' : 'Switch to Light Mode'}
+          >
+            {theme === 'light' ? (
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" width="18" height="18">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21.752 15.002A9.72 9.72 0 0 1 18 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 0 0 3 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 0 0 9.002-5.998Z" />
+              </svg>
+            ) : (
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" width="18" height="18">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v2.25m0 13.5V21M5.22 5.22l1.59 1.59m10.38 10.38l1.59 1.59M12 7.5a4.5 4.5 0 1 0 0 9 4.5 4.5 0 0 0 0-9zM3 12h2.25m13.5 0H21M5.22 18.78l1.59-1.59m10.38-10.38l1.59-1.59" />
+              </svg>
+            )}
+          </button>
+
+          {/* User Profile Badge */}
           <div className={styles.topHeaderUser} title={`Logged in as ${currentUser.username}`}>
             {renderAvatar(currentUser.avatarUrl, currentUser.username.charAt(0).toUpperCase(), styles.topAvatar)}
             <span className={styles.topUsername}>{currentUser.username}</span>
@@ -640,7 +673,7 @@ export default function Home() {
         </div>
       </header>
 
-      {/* 2. MAIN SPLIT CONTENT AREA (SIDEBAR + CHAT) */}
+      {/* 2. MAIN CONTENT SPLIT AREA (SIDEBAR + CHAT) */}
       <div className={styles.mainContentArea}>
         
         {/* SIDEBAR: CHAT LIST, USER CREDENTIALS, OR ADMIN REQUESTS */}
@@ -834,17 +867,15 @@ export default function Home() {
             <>
               {/* Chat Header */}
               <div className={styles.chatHeader}>
-                {(currentUser.role === 'admin' || currentUser.role === 'superadmin') && (
-                  <button 
-                    className={styles.backBtn} 
-                    onClick={() => setShowMobileChat(false)}
-                    title="Back"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" width="20" height="20">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
-                    </svg>
-                  </button>
-                )}
+                <button 
+                  className={styles.backBtn} 
+                  onClick={() => setShowMobileChat(false)}
+                  title="Back to List"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" width="20" height="20">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
+                  </svg>
+                </button>
                 
                 <div className={styles.avatarWithPresence}>
                   {renderAvatar(selectedUser.avatarUrl, selectedUser.username.charAt(0).toUpperCase(), styles.chatHeaderAvatar)}
@@ -991,7 +1022,7 @@ export default function Home() {
                         title="Discard Recording"
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" width="20" height="20">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.34 9m-4.72 0-.34-9m-4.788 3.84 3.106-1.166m10.457 0 3.106 1.166M4.5 12h15M10.5 4.5h3m-6 3h9M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.34 9m-4.72 0-.34-9m-4.788 3.84 3.106-1.166m10.457 0 3.106 1.166M4.5 12h15M10.5 4.5h3m-6 3h9M12 21a9 9 0 1 0 0-18 9 9 0 0 0 18Z" />
                         </svg>
                       </button>
                     </div>
@@ -1125,7 +1156,7 @@ export default function Home() {
           </button>
         )}
 
-        {/* Light/Dark Theme Button */}
+        {/* Theme Button */}
         <button 
           className={styles.footerTabBtn} 
           onClick={toggleTheme}
