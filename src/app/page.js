@@ -1429,15 +1429,33 @@ export default function Home() {
         />
       )}
 
-      {/* CUSTOM CONFIRM DELETION MODAL */}
+      {/* CUSTOM CONFIRMATION MODAL */}
       {confirmModal.isOpen && (
         <div className={styles.modalOverlay}>
           <div className={styles.modalContent} style={{ maxWidth: 420 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
-              <div style={{ width: 42, height: 42, borderRadius: '50%', background: 'rgba(239, 68, 68, 0.15)', color: '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" width="22" height="22">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.34 9m-4.72 0-.34-9m-4.788 3.84 3.106-1.166m10.457 0 3.106 1.166M4.5 12h15M10.5 4.5h3m-6 3h9M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z" />
-                </svg>
+              <div 
+                style={{ 
+                  width: 42, 
+                  height: 42, 
+                  borderRadius: '50%', 
+                  background: confirmModal.actionType === 'logout' ? 'rgba(234, 179, 8, 0.15)' : 'rgba(239, 68, 68, 0.15)', 
+                  color: confirmModal.actionType === 'logout' ? '#eab308' : '#ef4444', 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center', 
+                  flexShrink: 0 
+                }}
+              >
+                {confirmModal.actionType === 'logout' ? (
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" width="22" height="22">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9" />
+                  </svg>
+                ) : (
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" width="22" height="22">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.34 9m-4.72 0-.34-9m-4.788 3.84 3.106-1.166m10.457 0 3.106 1.166M4.5 12h15M10.5 4.5h3m-6 3h9M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z" />
+                  </svg>
+                )}
               </div>
               <h3 className={styles.modalTitle} style={{ margin: 0, fontSize: '1.25rem', color: 'var(--text-primary)' }}>{confirmModal.title}</h3>
             </div>
@@ -1456,10 +1474,16 @@ export default function Home() {
               </button>
               <button
                 type="button"
-                className={styles.dangerConfirmBtn}
+                className={confirmModal.actionType === 'logout' ? styles.primaryBtn : styles.dangerConfirmBtn}
                 onClick={handleExecuteConfirmedAction}
               >
-                Confirm Delete
+                {confirmModal.actionType === 'logout'
+                  ? 'Confirm Logout'
+                  : confirmModal.actionType === 'clear_chat'
+                  ? 'Clear Chat'
+                  : confirmModal.actionType === 'delete_user'
+                  ? 'Delete Account'
+                  : 'Delete Message'}
               </button>
             </div>
           </div>
