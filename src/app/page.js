@@ -166,6 +166,10 @@ export default function Home() {
   const fileInputRef = useRef(null);
   const avatarInputRef = useRef(null);
 
+  // Auto scroll control refs
+  const prevMsgCountRef = useRef(0);
+  const shouldAutoScrollRef = useRef(true);
+
   // 1. Authentication & Session Check
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
@@ -280,7 +284,18 @@ export default function Home() {
       const res = await fetch(url);
       if (res.ok) {
         const data = await res.json();
-        setMessages(data.messages || []);
+        const newMsgs = data.messages || [];
+
+        setMessages(prev => {
+          if (prev.length === newMsgs.length) {
+            const isSame = prev.every((m, idx) => m.id === newMsgs[idx]?.id && m.read === newMsgs[idx]?.read);
+            if (isSame) return prev;
+          }
+          if (newMsgs.length > prev.length) {
+            shouldAutoScrollRef.current = true;
+          }
+          return newMsgs;
+        });
       }
     } catch (err) {
       console.error('Error fetching messages:', err);
@@ -296,10 +311,18 @@ export default function Home() {
     }
   }, [currentUser, selectedUser]);
 
-  // Auto-scroll to bottom of chat on new message
+  // Auto-scroll to bottom of chat only on new message or user switch
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (shouldAutoScrollRef.current || messages.length > prevMsgCountRef.current) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      shouldAutoScrollRef.current = false;
+    }
+    prevMsgCountRef.current = messages.length;
   }, [messages]);
+
+  useEffect(() => {
+    shouldAutoScrollRef.current = true;
+  }, [selectedUser]);
 
   // Handle Admin Request Approval / Rejection by Super Admin
   const handleRequestAction = async (requestId, action) => {
@@ -741,6 +764,11 @@ export default function Home() {
           {/* TOP LOGO HEADER ON SIDEBAR */}
           <div className={styles.appBrandingHeader}>
             <OnChatLogo size={32} showText={true} />
+            <button className={styles.iconBtn} onClick={handleLogout} title="Log Out">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" width="20" height="20">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9" />
+              </svg>
+            </button>
           </div>
 
           {/* SIDEBAR VIEW A: Chats Tab (People List) */}
@@ -805,12 +833,18 @@ export default function Home() {
           {/* SIDEBAR VIEW B: Users & Passwords Tab (Admin Only) */}
           {activeTab === 'users' && (
             <>
-              <div className={styles.sidebarHeader}>
+              <div className={styles.sidebarHeader} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <button className={styles.primaryBtn} onClick={() => setIsCreateModalOpen(true)}>
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" width="18" height="18">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                   </svg>
                   {currentUser.role === 'superadmin' ? 'Create Admin' : 'Create User'}
+                </button>
+
+                <button className={styles.iconBtn} onClick={handleLogout} title="Log Out">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" width="20" height="20">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9" />
+                  </svg>
                 </button>
               </div>
 
@@ -841,10 +875,15 @@ export default function Home() {
           {/* SIDEBAR VIEW C: Super Admin "Admin Requests" Panel */}
           {activeTab === 'requests' && currentUser.role === 'superadmin' && (
             <div className={styles.requestsPanelContainer}>
-              <div className={styles.sidebarHeader}>
+              <div className={styles.sidebarHeader} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <h3 className={styles.sectionTitle} style={{ margin: 0, fontSize: '1rem', color: 'var(--text-primary)' }}>
                   New Admin Requests ({adminRequests.length})
                 </h3>
+                <button className={styles.iconBtn} onClick={handleLogout} title="Log Out">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" width="20" height="20">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9" />
+                  </svg>
+                </button>
               </div>
 
               <div className={styles.sidebarScrollArea}>
@@ -969,6 +1008,12 @@ export default function Home() {
                 <button className={styles.iconBtn} onClick={() => handleStartCall('audio')} title="Audio Call">
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" width="22" height="22">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 0 0 2.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.387a12.035 12.035 0 0 1-7.108-7.108c-.155-.44.011-.927.387-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 0 0-1.091-.852H4.5A2.25 2.25 0 0 0 2.25 4.5v2.25Z" />
+                  </svg>
+                </button>
+
+                <button className={styles.iconBtn} onClick={handleLogout} title="Log Out">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" width="22" height="22">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9" />
                   </svg>
                 </button>
               </div>
