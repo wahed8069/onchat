@@ -1093,6 +1093,13 @@ export default function Home() {
                 <div className={styles.headerActions}>
                   {isRegularUser ? (
                     <>
+                      <button className={styles.clearChatHeaderBtn} onClick={triggerClearChatModal} title="Clear Chat History">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" width="16" height="16">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M12 9.75 14.25 12m0 0l2.25 2.25M14.25 12l2.25-2.25M14.25 12L12 14.25m-2.58 4.92-6.374-6.375a1.125 1.125 0 0 1 0-1.59L9.42 4.83c.211-.211.498-.33.796-.33H19.5a2.25 2.25 0 0 1 2.25 2.25v10.5a2.25 2.25 0 0 1-2.25 2.25h-9.284c-.298 0-.585-.119-.796-.33Z" />
+                        </svg>
+                        <span>Clear Chat</span>
+                      </button>
+
                       <button className={styles.iconBtn} onClick={toggleTheme} title="Toggle Theme">
                         {theme === 'light' ? (
                           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" width="20" height="20">
@@ -1104,6 +1111,7 @@ export default function Home() {
                           </svg>
                         )}
                       </button>
+
                       <button className={styles.iconBtnDanger} onClick={triggerLogoutModal} title="Log Out">
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" width="20" height="20">
                           <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9" />
