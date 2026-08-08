@@ -781,6 +781,19 @@ export default function Home() {
         </div>
 
         <div className={styles.topHeaderRight}>
+          {/* Plus Add User Icon Button for Admin / Superadmin */}
+          {!isRegularUser && (
+            <button
+              className={styles.headerAddUserBtn}
+              onClick={() => setIsCreateModalOpen(true)}
+              title={currentUser?.role === 'superadmin' ? 'Add New Admin' : 'Add New User'}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.4} stroke="currentColor" width="18" height="18">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+              </svg>
+            </button>
+          )}
+
           {/* Header Theme Toggle Button */}
           <button 
             className={styles.headerThemeBtn} 
