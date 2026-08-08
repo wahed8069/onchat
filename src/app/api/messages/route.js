@@ -1,5 +1,5 @@
 import { cookies } from 'next/headers';
-import { getMessagesBetween, saveMessage, markMessagesAsRead } from '@/lib/db';
+import { getMessagesBetween, saveMessage, markMessagesAsRead, deleteMessage, clearChatBetween } from '@/lib/db';
 
 async function getSessionUser() {
   try {
@@ -83,6 +83,47 @@ export async function POST(request) {
     return Response.json({ success: true, message: newMessage }, { status: 201 });
   } catch (error) {
     console.error('Error sending message:', error);
+    return Response.json({ error: 'Internal Server Error' }, { status: 500 });
+  }
+}
+
+export async function DELETE(request) {
+  const currentUser = await getSessionUser();
+  if (!currentUser) {
+    return Response.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  const { searchParams } = new URL(request.url);
+  const messageId = searchParams.get('messageId');
+  const clearAll = searchParams.get('clearAll') === 'true';
+  const targetUserId = searchParams.get('userId');
+
+  try {
+    if (clearAll) {
+      const chatUserId = (currentUser.role === 'admin' || currentUser.role === 'superadmin')
+        ? targetUserId
+        : (currentUser.creatorId || 'admin-id');
+      
+      if (!chatUserId) {
+        return Response.json({ error: 'Target user ID is required to clear chat' }, { status: 400 });
+      }
+
+      clearChatBetween(currentUser.id, chatUserId);
+      return Response.json({ success: true, message: 'Chat cleared successfully' });
+    }
+
+    if (messageId) {
+      const success = deleteMessage(messageId, currentUser.id);
+      if (success) {
+        return Response.json({ success: true, message: 'Message deleted' });
+      } else {
+        return Response.json({ error: 'Message not found or permission denied' }, { status: 404 });
+      }
+    }
+
+    return Response.json({ error: 'Missing messageId or clearAll parameter' }, { status: 400 });
+  } catch (error) {
+    console.error('Error deleting message(s):', error);
     return Response.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

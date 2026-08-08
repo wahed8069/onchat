@@ -295,6 +295,43 @@ export default function Home() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  const handleDeleteMessage = async (messageId) => {
+    if (!messageId) return;
+    setMessages(prev => prev.filter(m => m.id !== messageId));
+    try {
+      const res = await fetch(`/api/messages?messageId=${messageId}`, {
+        method: 'DELETE'
+      });
+      if (!res.ok) {
+        fetchChatData();
+      }
+    } catch (err) {
+      console.error('Error deleting message:', err);
+      fetchChatData();
+    }
+  };
+
+  const handleClearChat = async () => {
+    if (!selectedUser) return;
+    const name = selectedUser.username || 'this user';
+    if (!window.confirm(`Are you sure you want to clear all messages with ${name}?`)) {
+      return;
+    }
+    const chatUserId = selectedUser.id;
+    setMessages([]);
+    try {
+      const res = await fetch(`/api/messages?clearAll=true&userId=${chatUserId}`, {
+        method: 'DELETE'
+      });
+      if (res.ok) {
+        fetchChatData();
+      }
+    } catch (err) {
+      console.error('Error clearing chat:', err);
+      fetchChatData();
+    }
+  };
+
   const handleRequestAction = async (requestId, action) => {
     setReqActionLoading(requestId);
     try {
@@ -630,7 +667,7 @@ export default function Home() {
   return (
     <div className={styles.appContainer}>
       
-      {/* 1. COMPACT SLEEK TOP HEADER */}
+      {/* 1. TOP APP HEADER (Sleek 56px Height with breathing room) */}
       <header className={styles.topAppHeader}>
         <div className={styles.headerLeft}>
           {/* Back Icon on mobile when chatting for Admin/Superadmin */}
@@ -645,7 +682,7 @@ export default function Home() {
               </svg>
             </button>
           )}
-          <OnChatLogo size={30} showText={true} />
+          <OnChatLogo size={32} showText={true} />
         </div>
 
         <div className={styles.topHeaderRight}>
@@ -899,11 +936,17 @@ export default function Home() {
                   </span>
                 </div>
 
-                {/* Chat Audio Call Button */}
+                {/* Header Actions: Audio Call + Clear Chat */}
                 <div className={styles.headerActions}>
                   <button className={styles.iconBtn} onClick={() => handleStartCall('audio')} title="Audio Call">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" width="22" height="22">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" width="20" height="20">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 0 0 2.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.387a12.035 12.035 0 0 1-7.108-7.108c-.155-.44.011-.927.387-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 0 0-1.091-.852H4.5A2.25 2.25 0 0 0 2.25 4.5v2.25Z" />
+                    </svg>
+                  </button>
+
+                  <button className={styles.iconBtnDanger} onClick={handleClearChat} title="Clear Chat History">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" width="20" height="20">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.34 9m-4.72 0-.34-9m-4.788 3.84 3.106-1.166m10.457 0 3.106 1.166M4.5 12h15M10.5 4.5h3m-6 3h9M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z" />
                     </svg>
                   </button>
                 </div>
@@ -944,7 +987,7 @@ export default function Home() {
                             {msg.text && <p className={styles.messageText}>{msg.text}</p>}
                           </div>
 
-                          {/* Time & Read Receipts */}
+                          {/* Time & Read Receipts & Delete Option */}
                           <div className={styles.messageFooterRow}>
                             <span className={styles.messageTime}>{formattedTime}</span>
                             {isSentByMe && (
@@ -966,6 +1009,17 @@ export default function Home() {
                                 )}
                               </span>
                             )}
+                            
+                            {/* Delete Message Button */}
+                            <button
+                              className={styles.deleteMsgBtn}
+                              onClick={() => handleDeleteMessage(msg.id)}
+                              title="Delete Message"
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" width="13" height="13">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.34 9m-4.72 0-.34-9m-4.788 3.84 3.106-1.166m10.457 0 3.106 1.166M4.5 12h15M10.5 4.5h3m-6 3h9M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z" />
+                              </svg>
+                            </button>
                           </div>
 
                         </div>
@@ -1026,7 +1080,7 @@ export default function Home() {
                         title="Discard Recording"
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" width="20" height="20">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.34 9m-4.72 0-.34-9m-4.788 3.84 3.106-1.166m10.457 0 3.106 1.166M4.5 12h15M10.5 4.5h3m-6 3h9M12 21a9 9 0 1 0 0-18 9 9 0 0 0 18Z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.34 9m-4.72 0-.34-9m-4.788 3.84 3.106-1.166m10.457 0 3.106 1.166M4.5 12h15M10.5 4.5h3m-6 3h9M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z" />
                         </svg>
                       </button>
                     </div>

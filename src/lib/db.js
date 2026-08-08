@@ -290,6 +290,36 @@ export function markMessagesAsRead(senderId, receiverId) {
   return updated;
 }
 
+export function deleteMessage(messageId, userId) {
+  const db = readDb();
+  const index = db.messages.findIndex(m => m.id === messageId);
+  if (index === -1) {
+    return false;
+  }
+  const msg = db.messages[index];
+  if (msg.senderId === userId || msg.receiverId === userId) {
+    db.messages.splice(index, 1);
+    writeDb(db);
+    return true;
+  }
+  return false;
+}
+
+export function clearChatBetween(user1Id, user2Id) {
+  const db = readDb();
+  const initialLength = db.messages.length;
+  db.messages = db.messages.filter(
+    m => !((m.senderId === user1Id && m.receiverId === user2Id) ||
+           (m.senderId === user2Id && m.receiverId === user1Id))
+  );
+  if (db.messages.length !== initialLength) {
+    writeDb(db);
+    return true;
+  }
+  return false;
+}
+
+
 // Call Signaling Operations
 export function getActiveCall(userId) {
   const db = readDb();
