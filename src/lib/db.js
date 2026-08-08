@@ -248,25 +248,50 @@ export function updateAdminRequestStatus(requestId, action) {
 
   const req = db.adminRequests[reqIndex];
   if (action === 'approve') {
-    // Set username directly to email (or unique version if email exists as username)
-    let username = req.email.trim();
-    if (db.users.some(u => u.username.toLowerCase() === username.toLowerCase())) {
-      username = `${req.email.trim()}_admin`;
-    }
+    const cleanEmail = req.email.trim();
+    const cleanPassword = req.password.trim();
 
-    const createdAdmin = createUser(
-      username,
-      req.password,
-      'admin',
-      req.photo,
-      'superadmin-id',
-      {
-        email: req.email,
+    // Check if user account with this email/username already exists in db.users
+    const existingIndex = db.users.findIndex(u => 
+      u.username.toLowerCase() === cleanEmail.toLowerCase() ||
+      (u.email && u.email.toLowerCase() === cleanEmail.toLowerCase())
+    );
+
+    let createdAdmin;
+
+    if (existingIndex !== -1) {
+      // Update existing user to admin role with new password and details
+      db.users[existingIndex] = {
+        ...db.users[existingIndex],
+        username: cleanEmail,
+        email: cleanEmail,
+        password: cleanPassword,
+        passwordHash: hashPassword(cleanPassword),
+        role: 'admin',
+        avatarUrl: req.photo || db.users[existingIndex].avatarUrl || '/uploads/avatar-admin.png',
         phone: req.phone,
         place: req.place,
-        paymentPlan: req.paymentPlan
-      }
-    );
+        paymentPlan: req.paymentPlan,
+        lastSeen: new Date().toISOString()
+      };
+      const { passwordHash, ...userWithoutPass } = db.users[existingIndex];
+      createdAdmin = userWithoutPass;
+    } else {
+      // Create fresh admin user
+      createdAdmin = createUser(
+        cleanEmail,
+        cleanPassword,
+        'admin',
+        req.photo || '/uploads/avatar-admin.png',
+        'superadmin-id',
+        {
+          email: cleanEmail,
+          phone: req.phone,
+          place: req.place,
+          paymentPlan: req.paymentPlan
+        }
+      );
+    }
 
     req.status = 'approved';
     req.approvedAt = new Date().toISOString();
