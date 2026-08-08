@@ -905,7 +905,10 @@ export default function Home() {
                             }}
                             title="Change Password"
                           >
-                            ✏️ Change Pass
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" width="14" height="14" style={{ verticalAlign: 'middle', marginRight: 4 }}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" />
+                            </svg>
+                            Change Pass
                           </button>
                           
                           <button
@@ -914,7 +917,10 @@ export default function Home() {
                             onClick={() => handleDeleteUser(user.id, user.username)}
                             title="Delete Account"
                           >
-                            🗑️ {currentUser.role === 'superadmin' ? 'Delete Admin' : 'Delete User'}
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" width="14" height="14" style={{ verticalAlign: 'middle', marginRight: 4 }}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.34 9m-4.72 0-.34-9m-4.788 3.84 3.106-1.166m10.457 0 3.106 1.166M4.5 12h15M10.5 4.5h3m-6 3h9M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z" />
+                            </svg>
+                            {currentUser.role === 'superadmin' ? 'Delete Admin' : 'Delete User'}
                           </button>
                         </div>
                       </div>
@@ -1127,7 +1133,7 @@ export default function Home() {
                               title="Delete Message"
                             >
                               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" width="13" height="13">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.34 9m-4.72 0-.34-9m-4.788 3.84 3.106-1.166m10.457 0 3.106 1.166M4.5 12h15M10.5 4.5h3m-6 3h9M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M6 7h12m-10 0v10a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V7M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2M10 11v6m4-11v6" />
                               </svg>
                             </button>
                           </div>
