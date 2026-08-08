@@ -930,17 +930,21 @@ export default function Home() {
           <>
             {/* Chat Header */}
             <div className={styles.chatHeader}>
-              {(currentUser.role === 'admin' || currentUser.role === 'superadmin') && (
-                <button 
-                  className={styles.backBtn} 
-                  onClick={() => setShowMobileChat(false)}
-                  title="Back"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" width="20" height="20">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
-                  </svg>
-                </button>
-              )}
+              <button 
+                className={styles.backBtn} 
+                onClick={() => {
+                  setShowMobileChat(false);
+                  if (currentUser?.role !== 'user') {
+                    setSelectedUser(null);
+                  }
+                }}
+                title="Back to Chats List"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" width="20" height="20">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
+                </svg>
+                <span className={styles.backBtnText}>Chats</span>
+              </button>
               
               <div className={styles.avatarWithPresence}>
                 {renderAvatar(selectedUser.avatarUrl, selectedUser.username.charAt(0).toUpperCase(), styles.chatHeaderAvatar)}

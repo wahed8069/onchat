@@ -282,16 +282,31 @@
 }
 
 .backBtn {
-  display: none;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
   margin-right: 0.75rem;
-  padding: 0.5rem;
-  border-radius: var(--radius-full);
-  color: var(--text-secondary);
-  transition: background-color var(--transition-fast);
+  padding: 0.45rem 0.85rem;
+  border-radius: 10px;
+  background: #ffffff;
+  color: #000000;
+  border: 1px solid #ffffff;
+  font-weight: 700;
+  font-size: 0.85rem;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(255, 255, 255, 0.15);
 }
 
 .backBtn:hover {
-  background-color: var(--bg-primary);
+  background: #e4e4e7;
+  transform: translateY(-1px);
+}
+
+.backBtnText {
+  display: inline-block;
+  font-weight: 800;
+  font-size: 0.82rem;
+  letter-spacing: -0.01em;
 }
 
 .chatHeaderAvatar {
