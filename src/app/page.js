@@ -843,7 +843,7 @@ export default function Home() {
                 </div>
 
                 <div className={styles.sidebarScrollArea}>
-                  <h3 className={styles.sectionTitle}>Account Credentials</h3>
+                  <h3 className={styles.sectionTitle}>{currentUser.role === 'superadmin' ? 'Admin Accounts' : 'User Accounts'}</h3>
                   {users.length === 0 ? (
                     <div style={{ textAlign: 'center', padding: '2rem 1rem', color: 'var(--text-secondary)' }}>No accounts created.</div>
                   ) : (
@@ -894,7 +894,7 @@ export default function Home() {
                           </div>
                         </div>
 
-                        {/* Account Actions: Change Password & Delete User */}
+                        {/* Account Actions: Change Password & Delete Account */}
                         <div className={styles.userCardActions}>
                           <button
                             type="button"
@@ -903,7 +903,7 @@ export default function Home() {
                               setEditingUserId(user.id);
                               setEditingPasswordInput(user.password || '');
                             }}
-                            title="Change User Password"
+                            title="Change Password"
                           >
                             ✏️ Change Pass
                           </button>
@@ -912,9 +912,9 @@ export default function Home() {
                             type="button"
                             className={`${styles.userActionBtn} ${styles.userActionBtnDelete}`}
                             onClick={() => handleDeleteUser(user.id, user.username)}
-                            title="Delete User Account"
+                            title="Delete Account"
                           >
-                            🗑️ Delete User
+                            🗑️ {currentUser.role === 'superadmin' ? 'Delete Admin' : 'Delete User'}
                           </button>
                         </div>
                       </div>
