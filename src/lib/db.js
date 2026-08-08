@@ -99,14 +99,27 @@ export function writeDb(data) {
 // User CRUD operations
 export function verifyUser(username, password) {
   const db = readDb();
-  const user = db.users.find(u => u.username.toLowerCase() === username.toLowerCase() || (u.email && u.email.toLowerCase() === username.toLowerCase()));
+  if (!username || !password) return null;
+  const searchInput = username.trim().toLowerCase();
+  const rawPassword = password.trim();
+
+  const user = db.users.find(u => {
+    const matchUsername = Boolean(u.username && u.username.trim().toLowerCase() === searchInput);
+    const matchEmail = Boolean(u.email && u.email.trim().toLowerCase() === searchInput);
+    const emailPrefix = u.email ? u.email.split('@')[0].trim().toLowerCase() : '';
+    const matchPrefix = Boolean(emailPrefix && emailPrefix === searchInput);
+    return matchUsername || matchEmail || matchPrefix;
+  });
+
   if (!user) return null;
 
-  const passwordHash = hashPassword(password);
-  if (user.passwordHash === passwordHash) {
-    // Update last seen on login
+  const passwordHash = hashPassword(rawPassword);
+  const isPasswordMatch = (user.passwordHash && user.passwordHash === passwordHash) ||
+                          (user.password && user.password === rawPassword);
+
+  if (isPasswordMatch) {
     updateUserLastSeen(user.id);
-    const { passwordHash, ...userWithoutPassword } = user;
+    const { passwordHash: _, ...userWithoutPassword } = user;
     return userWithoutPassword;
   }
   return null;
