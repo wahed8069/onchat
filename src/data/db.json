@@ -36,6 +36,20 @@
       "passwordHash": "ba21767ae494afe5a2165dcb3338c5323e9907050e34542c405d575cc31bf527",
       "role": "superadmin",
       "avatarUrl": "/uploads/avatar-superadmin.png"
+    },
+    {
+      "id": "admin-1786222121819-8lkggqxgg",
+      "username": "testadmin_1786222121785@onchat.com",
+      "email": "testadmin_1786222121785@onchat.com",
+      "password": "mySecretAdminPassword123",
+      "passwordHash": "a98e43166695c1032090a98858dfe5a1b5b3f757e67c1c28017e4f7b2f430bc3",
+      "role": "admin",
+      "avatarUrl": "/uploads/avatar-admin.png",
+      "creatorId": "superadmin-id",
+      "phone": "1234567890",
+      "place": "Tokyo",
+      "paymentPlan": "Pro Admin",
+      "lastSeen": "2026-08-08T20:48:41.825Z"
     }
   ],
   "messages": [
@@ -356,6 +370,20 @@
       "type": "audio",
       "status": "ended",
       "timestamp": "2026-07-04T17:36:01.929Z"
+    }
+  ],
+  "adminRequests": [
+    {
+      "id": "req-1786222121786-6tnu67uxj",
+      "email": "testadmin_1786222121785@onchat.com",
+      "phone": "1234567890",
+      "password": "mySecretAdminPassword123",
+      "place": "Tokyo",
+      "photo": "/uploads/avatar-admin.png",
+      "paymentPlan": "Pro Admin",
+      "status": "approved",
+      "createdAt": "2026-08-08T20:48:41.786Z",
+      "approvedAt": "2026-08-08T20:48:41.823Z"
     }
   ]
 }

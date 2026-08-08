@@ -154,14 +154,14 @@ export default function LoginPage() {
 
         <form onSubmit={handleLogin}>
           <div className={styles.formGroup}>
-            <label className={styles.label} htmlFor="username">Username or Email</label>
+            <label className={styles.label} htmlFor="username">Email or Username</label>
             <input
               className={styles.input}
               id="username"
               type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              placeholder="Enter your username or email"
+              placeholder="Enter your email or username"
               autoComplete="username"
               disabled={loading}
             />
