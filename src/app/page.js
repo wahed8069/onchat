@@ -345,10 +345,27 @@ export default function Home() {
     });
   };
 
-  // Execute Confirmed Deletion Action
+  const triggerLogoutModal = () => {
+    setConfirmModal({
+      isOpen: true,
+      title: 'Log Out',
+      message: 'Are you sure you want to log out of your account?',
+      actionType: 'logout',
+      targetId: null,
+      targetName: ''
+    });
+  };
+
+  // Execute Confirmed Action
   const handleExecuteConfirmedAction = async () => {
     const { actionType, targetId } = confirmModal;
     setConfirmModal(prev => ({ ...prev, isOpen: false }));
+
+    if (actionType === 'logout') {
+      localStorage.removeItem('user');
+      router.push('/login');
+      return;
+    }
 
     if (actionType === 'delete_msg' && targetId) {
       setMessages(prev => prev.filter(m => m.id !== targetId));
@@ -1370,7 +1387,7 @@ export default function Home() {
         </button>
 
         {/* Logout Button */}
-        <button className={styles.footerTabBtn} onClick={handleLogout}>
+        <button className={styles.footerTabBtn} onClick={triggerLogoutModal}>
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" width="20" height="20">
             <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9" />
           </svg>
