@@ -1,7 +1,7 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400..700&family=Press+Start+2P&family=Silkscreen:wght@400;700&display=swap');
 
 :root {
-  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-sans: 'Pixelify Sans', 'Silkscreen', 'Press Start 2P', monospace, sans-serif;
   
   /* Black & White Palette - Light Mode */
   --glass-bg: rgba(255, 255, 255, 0.95);
